@@ -15,7 +15,8 @@ function SessionHistory({ sessions, onViewSession }) {
     const personas = {
       cfo: { name: 'Healthcare CFO', avatar: '💼' },
       clinical_director: { name: 'Clinical Director', avatar: '🩺' },
-      it_director: { name: 'IT Director', avatar: '💻' }
+      it_director: { name: 'IT Director', avatar: '💻' },
+      ceo: { name: 'Hospital CEO', avatar: '🏥' }
     };
     return personas[personaId] || { name: 'Unknown', avatar: '❓' };
   };
@@ -59,8 +60,13 @@ function SessionHistory({ sessions, onViewSession }) {
         </div>
       ) : (
         <div className="space-y-4">
-          {sessions.map((session) => {
+          {sessions.map((session, idx) => {
             const persona = getPersonaInfo(session.persona_id);
+            const prev = sessions[idx + 1];
+            const hasScore = session.status === 'completed' && (session.score || 0) > 0;
+            const prevHasScore = prev && prev.status === 'completed' && (prev.score || 0) > 0;
+            const delta = (hasScore && prevHasScore) ? (session.score - prev.score) : null;
+
             return (
               <div
                 key={session.id}
@@ -80,11 +86,21 @@ function SessionHistory({ sessions, onViewSession }) {
                   </div>
                   
                   <div className="flex items-center space-x-4">
-                    {/* Score Badge */}
-                    <div className="text-right">
+                    {/* Score + Trend */}
+                    <div className="text-right space-y-1">
                       <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(session.status, session.score)}`}>
                         {session.score > 0 ? `${session.score}% - ${getScoreLabel(session.score)}` : getScoreLabel(session.score)}
                       </div>
+
+                      {typeof delta === 'number' && (
+                        <div className={`text-xs ${delta >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          Trend vs prior: {delta >= 0 ? '+' : ''}{delta}
+                        </div>
+                      )}
+
+                      {session.score_count > 0 && (
+                        <div className="text-xs text-gray-500">AI checkpoints: {session.score_count}</div>
+                      )}
                     </div>
                     
                     {/* View Button */}
@@ -115,36 +131,51 @@ function SessionHistory({ sessions, onViewSession }) {
       )}
 
       {/* Summary Stats */}
-      {sessions.length > 0 && (
-        <div className="mt-8 bg-indigo-50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-indigo-900 mb-4">
-            📊 Your Training Progress
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {sessions.length}
+      {sessions.length > 0 && (() => {
+        const completed = sessions.filter(s => s.status === 'completed');
+        const scored = completed.filter(s => (s.score || 0) > 0);
+        const avg = scored.length > 0
+          ? Math.round(scored.reduce((sum, s) => sum + (s.score || 0), 0) / scored.length)
+          : 0;
+
+        return (
+          <div className="mt-8 bg-indigo-50 rounded-lg p-6">
+            <h3 className="text-lg font-medium text-indigo-900 mb-4">
+              📊 Your Training Progress
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">
+                  {sessions.length}
+                </div>
+                <div className="text-sm text-indigo-800">Total Sessions</div>
               </div>
-              <div className="text-sm text-indigo-800">Total Sessions</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {sessions.filter(s => s.status === 'completed').length}
+
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">
+                  {completed.length}
+                </div>
+                <div className="text-sm text-indigo-800">Completed</div>
               </div>
-              <div className="text-sm text-indigo-800">Completed</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {sessions.filter(s => s.score >= 80).length}
+
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">
+                  {avg > 0 ? `${avg}%` : '—'}
+                </div>
+                <div className="text-sm text-indigo-800">Avg Score (Completed)</div>
               </div>
-              <div className="text-sm text-indigo-800">Excellent Scores</div>
+
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">
+                  {sessions.filter(s => (s.score || 0) >= 80).length}
+                </div>
+                <div className="text-sm text-indigo-800">Excellent Scores</div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

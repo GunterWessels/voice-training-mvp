@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PersonaList from './components/PersonaList';
+import ScenarioSelector from './components/ScenarioSelector';
 import VoiceChat from './components/VoiceChat';
 import EnhancedVoiceChat from './components/EnhancedVoiceChat';
 import CartridgeSelector from './components/CartridgeSelector';
@@ -8,11 +9,13 @@ import SessionHistory from './components/SessionHistory';
 import './App.css';
 
 function App() {
-  const [currentView, setCurrentView] = useState('cartridges'); // cartridges, personas, chat, history
+  const [currentView, setCurrentView] = useState('cartridges'); // cartridges, personas, scenarios, chat, history
   const [personas, setPersonas] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
   const [sessionHistory, setSessionHistory] = useState([]);
   const [selectedCartridge, setSelectedCartridge] = useState(null);
+  const [selectedPersona, setSelectedPersona] = useState(null);
+  const [sessionUserName, setSessionUserName] = useState('Sales Rep');
 
   useEffect(() => {
     loadPersonas();
@@ -47,7 +50,7 @@ function App() {
     setCurrentView('personas');
   };
 
-  const startSession = async (personaId, userName = 'User') => {
+  const startSession = async (personaId, userName = 'User', scenario = null) => {
     try {
       const sessionData = {
         persona_id: personaId,
@@ -57,6 +60,11 @@ function App() {
       // Include cartridge if selected
       if (selectedCartridge) {
         sessionData.cartridge_id = selectedCartridge;
+      }
+
+      // Include scenario if selected
+      if (scenario && scenario.id) {
+        sessionData.scenario_id = scenario.id;
       }
       
       const response = await axios.post('/sessions', sessionData);
@@ -72,6 +80,7 @@ function App() {
   const endSession = () => {
     setCurrentSession(null);
     setSelectedCartridge(null);
+    setSelectedPersona(null);
     setCurrentView('cartridges');
     loadSessionHistory(); // Refresh history
   };
@@ -82,6 +91,8 @@ function App() {
       setCurrentSession({
         session_id: sessionId,
         persona: response.data.persona,
+        cartridge: response.data.cartridge,
+        scenario: response.data.scenario,
         session: response.data.session,
         messages: response.data.messages
       });
@@ -93,6 +104,7 @@ function App() {
 
   const goToCartridges = () => {
     setSelectedCartridge(null);
+    setSelectedPersona(null);
     setCurrentView('cartridges');
   };
 
@@ -161,15 +173,38 @@ function App() {
             {selectedCartridge && (
               <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-green-800">
-                  ✓ Cartridge selected. Choose a persona to start your practice session.
+                  ✓ Cartridge selected. Choose a persona to continue.
                 </p>
               </div>
             )}
             <PersonaList
               personas={personas}
-              onStartSession={startSession}
+              hasCartridge={!!selectedCartridge}
+              onSelectPersona={(personaId, userName) => {
+                const persona = personas.find(p => p.id === personaId) || { id: personaId };
+                setSelectedPersona(persona);
+                setSessionUserName(userName);
+
+                if (selectedCartridge) {
+                  setCurrentView('scenarios');
+                } else {
+                  startSession(personaId, userName);
+                }
+              }}
             />
           </div>
+        )}
+
+        {currentView === 'scenarios' && (
+          <ScenarioSelector
+            cartridgeId={selectedCartridge}
+            persona={selectedPersona}
+            userName={sessionUserName}
+            onBack={() => setCurrentView('personas')}
+            onStart={(scenario) => {
+              startSession(selectedPersona?.id, sessionUserName, scenario);
+            }}
+          />
         )}
 
         {currentView === 'chat' && currentSession && (

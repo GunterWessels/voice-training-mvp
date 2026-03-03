@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
-function PersonaList({ personas, onStartSession }) {
+function PersonaList({ personas, hasCartridge = false, onSelectPersona }) {
   const [userName, setUserName] = useState('Sales Rep');
 
-  const handleStartSession = (personaId) => {
-    onStartSession(personaId, userName);
+  const handleSelectPersona = (personaId) => {
+    onSelectPersona(personaId, userName);
   };
 
   return (
@@ -34,7 +34,7 @@ function PersonaList({ personas, onStartSession }) {
       </div>
 
       {/* Persona Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {personas.map((persona) => (
           <div
             key={persona.id}
@@ -51,11 +51,11 @@ function PersonaList({ personas, onStartSession }) {
             </div>
             
             <button
-              onClick={() => handleStartSession(persona.id)}
+              onClick={() => handleSelectPersona(persona.id)}
               disabled={!userName.trim()}
               className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
             >
-              Start Training
+              {hasCartridge ? 'Next: Select Scenario' : 'Start Training'}
             </button>
           </div>
         ))}

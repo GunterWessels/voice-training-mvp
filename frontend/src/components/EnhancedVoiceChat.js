@@ -26,7 +26,6 @@ function EnhancedVoiceChat({ session, onEndSession }) {
   const wsRef = useRef(null);
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const audioRef = useRef(null);
 
   useEffect(() => {
     connectWebSocket();
@@ -107,9 +106,9 @@ function EnhancedVoiceChat({ session, onEndSession }) {
           setFeedback(data.feedback);
         }
         
-        // Handle audio playback
-        if (data.tts_provider === 'elevenlabs' && data.audio) {
-          playElevenLabsAudio(data.audio);
+        // Handle audio playback (high-quality audio from backend when available)
+        if (data.audio && data.audio.audio_data) {
+          playHighQualityAudio(data.audio.audio_data, data.audio.content_type, data.text);
         } else {
           // Fallback to browser TTS
           speakText(data.text);
@@ -132,39 +131,49 @@ function EnhancedVoiceChat({ session, onEndSession }) {
     };
   };
 
-  const playElevenLabsAudio = async (base64Audio) => {
+  const playHighQualityAudio = async (base64Audio, contentType = 'audio/mpeg', fallbackText = '') => {
     try {
       setIsPlayingAudio(true);
-      
+
       // Convert base64 to blob and play
       const audioBytes = atob(base64Audio);
       const audioArray = new Uint8Array(audioBytes.length);
       for (let i = 0; i < audioBytes.length; i++) {
         audioArray[i] = audioBytes.charCodeAt(i);
       }
-      
-      const audioBlob = new Blob([audioArray], { type: 'audio/mpeg' });
+
+      const audioBlob = new Blob([audioArray], { type: contentType || 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
-      
+
       const audio = new Audio(audioUrl);
-      
+
       audio.onended = () => {
         setIsPlayingAudio(false);
         URL.revokeObjectURL(audioUrl);
       };
-      
+
       audio.onerror = (error) => {
         console.error('Audio playback error:', error);
         setIsPlayingAudio(false);
         URL.revokeObjectURL(audioUrl);
+
+        // Fallback to browser TTS
+        if (fallbackText) {
+          speakText(fallbackText);
+        }
       };
-      
+
       await audio.play();
-      console.log('🎵 Playing ElevenLabs audio');
-      
+      console.log('🎵 Playing AI audio');
+
     } catch (error) {
-      console.error('Error playing ElevenLabs audio:', error);
+      console.error('Error playing AI audio:', error);
       setIsPlayingAudio(false);
+
+      // Fallback to browser TTS
+      if (fallbackText) {
+        speakText(fallbackText);
+      }
     }
   };
 
@@ -359,7 +368,7 @@ function EnhancedVoiceChat({ session, onEndSession }) {
             {isPlayingAudio && (
               <div className="flex justify-start">
                 <div className="bg-green-100 border border-green-200 rounded-lg px-4 py-2">
-                  <p className="text-sm text-green-700">🔊 Playing ElevenLabs audio...</p>
+                  <p className="text-sm text-green-700">🔊 Playing AI audio...</p>
                 </div>
               </div>
             )}

@@ -49,9 +49,10 @@ class TTSService:
         # Map personas to ElevenLabs voice IDs
         voice_map = {
             "cfo": "21m00Tcm4TlvDq8ikWAM",  # Rachel - Professional female voice
-            "clinical_director": "AZnzlk1XvdvUeBnXmlld",  # Domi - Warm professional voice  
+            "clinical_director": "AZnzlk1XvdvUeBnXmlld",  # Domi - Warm professional voice
             "it_director": "EXAVITQu4vr4xnSDxMaL",  # Bella - Clear technical voice
-            "default": "21m00Tcm4TlvDq8ikWAM"
+            "ceo": "21m00Tcm4TlvDq8ikWAM",  # Executive tone (fallback to Rachel unless customized)
+            "default": "21m00Tcm4TlvDq8ikWAM",
         }
         
         voice_id = voice_map.get(persona_id, voice_map["default"])
@@ -104,10 +105,11 @@ class TTSService:
         
         # Map personas to OpenAI voices
         voice_map = {
-            "cfo": "nova",  # Professional female
+            "cfo": "nova",  # Professional
             "clinical_director": "alloy",  # Warm professional
-            "it_director": "echo",  # Clear technical  
-            "default": "nova"
+            "it_director": "echo",  # Clear technical
+            "ceo": "onyx",  # Deeper executive tone
+            "default": "nova",
         }
         
         voice = voice_map.get(persona_id, voice_map["default"])

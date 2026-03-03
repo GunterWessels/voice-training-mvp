@@ -35,6 +35,18 @@ class TrainingFeatures:
     difficulty_scaling: bool = True
 
 @dataclass
+class PromptCartridge:
+    """Reusable prompt / instruction set that can be attached to practice cartridges"""
+    id: str
+    name: str
+    description: str
+    prompt_text: str
+    created_at: datetime
+    updated_at: datetime
+    owner: str = "user"
+
+
+@dataclass
 class PracticeCartridge:
     """Complete practice scenario with context and features"""
     id: str
@@ -46,30 +58,60 @@ class PracticeCartridge:
     created_at: datetime
     updated_at: datetime
     owner: str = "user"
+    prompt_cartridge_id: Optional[str] = None
 
 class CartridgeService:
     def __init__(self, db_path: str = "cartridges.db"):
-        self.db_path = db_path
+        # Normalize DB path so running from different working directories is consistent.
+        p = Path(db_path)
+        if not p.is_absolute():
+            p = Path(__file__).resolve().parent / p
+        self.db_path = str(p)
         self.init_database()
 
     def init_database(self):
-        """Initialize cartridge database"""
+        """Initialize cartridge database (and lightweight migrations)."""
         conn = sqlite3.connect(self.db_path)
-        conn.execute("""
+
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS cartridges (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 description TEXT,
                 deal_context TEXT,  -- JSON
-                features TEXT,      -- JSON  
+                features TEXT,      -- JSON
                 scenarios TEXT,     -- JSON
+                created_at TEXT,
+                updated_at TEXT,
+                owner TEXT DEFAULT 'user',
+                prompt_cartridge_id TEXT
+            )
+            """
+        )
+
+        # Lightweight migration: add prompt_cartridge_id if missing
+        cur = conn.execute("PRAGMA table_info(cartridges)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "prompt_cartridge_id" not in cols:
+            conn.execute("ALTER TABLE cartridges ADD COLUMN prompt_cartridge_id TEXT")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS prompt_cartridges (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                prompt_text TEXT NOT NULL,
                 created_at TEXT,
                 updated_at TEXT,
                 owner TEXT DEFAULT 'user'
             )
-        """)
-        
-        conn.execute("""
+            """
+        )
+
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS practice_sessions (
                 id TEXT PRIMARY KEY,
                 cartridge_id TEXT,
@@ -80,7 +122,9 @@ class CartridgeService:
                 score INTEGER,
                 FOREIGN KEY (cartridge_id) REFERENCES cartridges (id)
             )
-        """)
+            """
+        )
+
         conn.commit()
         conn.close()
 
@@ -90,7 +134,8 @@ class CartridgeService:
         description: str,
         deal_context: DealContext,
         features: TrainingFeatures = None,
-        scenarios: List[Dict[str, Any]] = None
+        scenarios: List[Dict[str, Any]] = None,
+        prompt_cartridge_id: Optional[str] = None,
     ) -> str:
         """Create a new practice cartridge"""
         
@@ -115,19 +160,23 @@ class CartridgeService:
         )
         
         conn = sqlite3.connect(self.db_path)
-        conn.execute("""
-            INSERT INTO cartridges (id, name, description, deal_context, features, scenarios, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            cartridge_id,
-            name,
-            description,
-            json.dumps(asdict(deal_context)),
-            json.dumps(asdict(features)),
-            json.dumps(scenarios),
-            now,
-            now
-        ))
+        conn.execute(
+            """
+            INSERT INTO cartridges (id, name, description, deal_context, features, scenarios, created_at, updated_at, prompt_cartridge_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                cartridge_id,
+                name,
+                description,
+                json.dumps(asdict(deal_context)),
+                json.dumps(asdict(features)),
+                json.dumps(scenarios),
+                now,
+                now,
+                prompt_cartridge_id,
+            ),
+        )
         conn.commit()
         conn.close()
         
@@ -153,52 +202,173 @@ class CartridgeService:
             scenarios=json.loads(row[5]),
             created_at=datetime.fromisoformat(row[6]),
             updated_at=datetime.fromisoformat(row[7]),
-            owner=row[8] if len(row) > 8 else "user"
+            owner=row[8] if len(row) > 8 else "user",
+            prompt_cartridge_id=row[9] if len(row) > 9 else None,
         )
 
     def list_cartridges(self, owner: str = "user") -> List[Dict[str, Any]]:
         """List all cartridges for a user"""
         
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.execute("""
-            SELECT id, name, description, created_at, updated_at 
-            FROM cartridges 
-            WHERE owner = ? 
+        cursor = conn.execute(
+            """
+            SELECT id, name, description, created_at, updated_at, prompt_cartridge_id
+            FROM cartridges
+            WHERE owner = ?
             ORDER BY updated_at DESC
-        """, (owner,))
+            """,
+            (owner,),
+        )
         
         cartridges = []
         for row in cursor.fetchall():
-            cartridges.append({
-                "id": row[0],
-                "name": row[1],
-                "description": row[2],
-                "created_at": row[3],
-                "updated_at": row[4]
-            })
+            cartridges.append(
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "created_at": row[3],
+                    "updated_at": row[4],
+                    "prompt_cartridge_id": row[5],
+                }
+            )
         
         conn.close()
         return cartridges
 
-    def update_cartridge_features(self, cartridge_id: str, features: TrainingFeatures) -> bool:
-        """Update feature toggles for a cartridge"""
-        
+    # -------------------------
+    # Prompt Cartridges (reusable instruction sets)
+    # -------------------------
+
+    def create_prompt_cartridge(
+        self,
+        name: str,
+        description: str,
+        prompt_text: str,
+        owner: str = "user",
+    ) -> str:
+        prompt_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+
         conn = sqlite3.connect(self.db_path)
-        result = conn.execute("""
-            UPDATE cartridges 
-            SET features = ?, updated_at = ? 
+        conn.execute(
+            """
+            INSERT INTO prompt_cartridges (id, name, description, prompt_text, created_at, updated_at, owner)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (prompt_id, name, description, prompt_text, now, now, owner),
+        )
+        conn.commit()
+        conn.close()
+        return prompt_id
+
+    def list_prompt_cartridges(self, owner: str = "user") -> List[Dict[str, Any]]:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.execute(
+            """
+            SELECT id, name, description, created_at, updated_at
+            FROM prompt_cartridges
+            WHERE owner = ?
+            ORDER BY updated_at DESC
+            """,
+            (owner,),
+        )
+
+        out: List[Dict[str, Any]] = []
+        for row in cursor.fetchall():
+            out.append(
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "created_at": row[3],
+                    "updated_at": row[4],
+                }
+            )
+
+        conn.close()
+        return out
+
+    def get_prompt_cartridge(self, prompt_cartridge_id: str) -> Optional[PromptCartridge]:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.execute(
+            "SELECT id, name, description, prompt_text, created_at, updated_at, owner FROM prompt_cartridges WHERE id = ?",
+            (prompt_cartridge_id,),
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        return PromptCartridge(
+            id=row[0],
+            name=row[1],
+            description=row[2] or "",
+            prompt_text=row[3] or "",
+            created_at=datetime.fromisoformat(row[4]),
+            updated_at=datetime.fromisoformat(row[5]),
+            owner=row[6] if len(row) > 6 else "user",
+        )
+
+    def attach_prompt_cartridge(self, cartridge_id: str, prompt_cartridge_id: Optional[str]) -> bool:
+        """Attach (or clear) a prompt cartridge on a practice cartridge."""
+
+        if prompt_cartridge_id:
+            pc = self.get_prompt_cartridge(prompt_cartridge_id)
+            if not pc:
+                return False
+
+        conn = sqlite3.connect(self.db_path)
+        result = conn.execute(
+            """
+            UPDATE cartridges
+            SET prompt_cartridge_id = ?, updated_at = ?
             WHERE id = ?
-        """, (
-            json.dumps(asdict(features)),
-            datetime.now().isoformat(),
-            cartridge_id
-        ))
-        
+            """,
+            (prompt_cartridge_id, datetime.now().isoformat(), cartridge_id),
+        )
         success = result.rowcount > 0
         conn.commit()
         conn.close()
-        
         return success
+
+    def update_cartridge_features(self, cartridge_id: str, features: Any) -> bool:
+        """Update feature toggles for a cartridge.
+
+        Accepts either a TrainingFeatures dataclass or a plain dict (from the API).
+        """
+
+        if isinstance(features, dict):
+            features_obj = TrainingFeatures(**features)
+        elif isinstance(features, TrainingFeatures):
+            features_obj = features
+        else:
+            raise TypeError("features must be a dict or TrainingFeatures")
+
+        conn = sqlite3.connect(self.db_path)
+        result = conn.execute(
+            """
+            UPDATE cartridges
+            SET features = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                json.dumps(asdict(features_obj)),
+                datetime.now().isoformat(),
+                cartridge_id,
+            ),
+        )
+
+        success = result.rowcount > 0
+        conn.commit()
+        conn.close()
+
+        return success
+
+    # Backwards-compatible alias (some parts of the codebase call this name)
+    def update_training_features(self, cartridge_id: str, features: Any) -> bool:
+        return self.update_cartridge_features(cartridge_id, features)
 
     def _generate_default_scenarios(self, deal_context: DealContext) -> List[Dict[str, Any]]:
         """Generate default practice scenarios based on deal context"""
@@ -363,13 +533,22 @@ class CartridgeService:
             "available_scenarios": cartridge.scenarios,
             "company_background": self._build_company_background(cartridge.deal_context),
             "decision_maker_profiles": self._build_decision_maker_profiles(cartridge.deal_context.decision_makers),
-            "conversation_guidelines": self._build_conversation_guidelines(cartridge.features)
+            "conversation_guidelines": self._build_conversation_guidelines(cartridge.features),
         }
-        
+
+        prompt_cartridge = None
+        if getattr(cartridge, "prompt_cartridge_id", None):
+            pc = self.get_prompt_cartridge(cartridge.prompt_cartridge_id)
+            if pc:
+                prompt_cartridge = asdict(pc)
+                rag_context["prompt_instructions"] = pc.prompt_text
+                rag_context["prompt_cartridge"] = {"id": pc.id, "name": pc.name, "description": pc.description}
+
         return {
             "cartridge": asdict(cartridge),
             "rag_context": rag_context,
-            "active_features": asdict(cartridge.features)
+            "active_features": asdict(cartridge.features),
+            "prompt_cartridge": prompt_cartridge,
         }
 
     def _build_company_background(self, deal_context: DealContext) -> str:
