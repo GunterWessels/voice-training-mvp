@@ -676,6 +676,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                             try:
                                 from cert_service import should_issue_cert, upload_and_email_cert
                                 import asyncio as _asyncio
+                                import datetime as _datetime
                                 cof = arc_tracker.cof_flags
                                 if should_issue_cert(
                                     cof["clinical"], cof["operational"], cof["financial"],
@@ -684,10 +685,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                                     completion_data = {
                                         "completion_id": str(pg_session.id),
                                         "user_id": ws_user.get("user_id", ""),
-                                        "rep_name": ws_user.get("email", ""),
+                                        "rep_name": ws_user.get("name") or ws_user.get("full_name") or ws_user.get("email", ""),
                                         "scenario_name": "Training Session",
-                                        "completed_at": __import__("datetime").date.today().isoformat(),
-                                        "score": arc_tracker.current_stage * 20,
+                                        "completed_at": _datetime.date.today().isoformat(),
+                                        "score": min(arc_tracker.current_stage * 20, 100),  # ARC stages 1-5; cap at 100
                                         "cof_clinical": cof["clinical"],
                                         "cof_operational": cof["operational"],
                                         "cof_financial": cof["financial"],
@@ -754,6 +755,33 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
     except WebSocketDisconnect:
         connections.pop(session_id, None)
+        # Check cert eligibility on clean disconnect (budget cap path already handled separately)
+        if arc_tracker and pg_session and ws_user:
+            try:
+                import asyncio as _asyncio
+                import datetime as _dt
+                from cert_service import should_issue_cert, upload_and_email_cert
+                cof = arc_tracker.cof_flags
+                if should_issue_cert(
+                    cof["clinical"], cof["operational"], cof["financial"],
+                    arc_tracker.current_stage, pg_session.preset or "full_practice"
+                ):
+                    completion_data = {
+                        "completion_id": str(pg_session.id),
+                        "user_id": ws_user.get("user_id", ""),
+                        "rep_name": ws_user.get("name") or ws_user.get("full_name") or ws_user.get("email", ""),
+                        "scenario_name": "Training Session",
+                        "completed_at": _dt.date.today().isoformat(),
+                        "score": min(arc_tracker.current_stage * 20, 100),
+                        "cof_clinical": cof["clinical"],
+                        "cof_operational": cof["operational"],
+                        "cof_financial": cof["financial"],
+                    }
+                    _asyncio.create_task(
+                        upload_and_email_cert(completion_data, ws_user.get("email", ""))
+                    )
+            except Exception as _cert_disc_err:
+                logging.warning("cert dispatch on disconnect failed: %s", _cert_disc_err)
     except Exception as e:
         try:
             await websocket.send_json({"error": str(e)})
