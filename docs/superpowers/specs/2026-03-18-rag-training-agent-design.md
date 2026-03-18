@@ -498,9 +498,23 @@ The admin dashboard includes a **Knowledge Base** section with two tabs per prod
 Two entry paths:
 
 **Path A — Document upload:**
-- Drag/drop zone accepts PDF or DOCX (IFU, clinical evidence, sales aid, coverage policy)
-- System extracts text via `pdfplumber`, auto-detects section headers, proposes chunks
-- Admin reviews proposed chunks before committing — required step before ingestion
+- Drag/drop zone accepts any file. No format rejection at the UI layer — system handles extraction silently.
+- Admin reviews proposed chunks before committing — required step before ingestion.
+
+**Extraction strategy by file type (server-side, transparent to admin):**
+
+| Format | Extraction Method |
+|--------|------------------|
+| PDF (text-based) | `pdfplumber` — section header detection, page-aware |
+| PDF (scanned / image-based) | `pdfplumber` fallback detection → Claude Vision API if text yield < 50 chars/page |
+| DOCX / DOC | `python-docx` — heading styles map to section labels |
+| TXT / MD / RTF | Direct read; `textutil -convert txt` for RTF |
+| JPG / PNG / TIFF / BMP / WEBP | Claude Vision API — extracts all readable text from image |
+| PPTX / PPT | `python-pptx` — slide title becomes section label, body becomes chunk candidate |
+| XLSX / XLS / CSV | `openpyxl` / `csv` — tabular data formatted as structured text chunks |
+| Any unrecognized format | Attempt UTF-8 read → if binary, Claude Vision API on rendered preview |
+
+**Failure behavior:** If extraction yields no text, the admin sees: *"We couldn't extract readable text from this file. Try a higher-resolution scan or paste the content manually."* No errors, no stack traces. The manual chunk entry form is always available as a fallback.
 
 **Path B — Manual chunk entry form:**
 - Domain picker: `product | clinical | cof | objection | compliance | stakeholder`
