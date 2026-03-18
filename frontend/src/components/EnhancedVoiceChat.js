@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import RoastCard from './RoastCard';
 
@@ -276,6 +277,16 @@ function EnhancedVoiceChat({ session, onEndSession }) {
   };
 
   const endSession = async () => {
+    // Tear down live session before showing roast
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
     // Score the session (best effort — don't block on failure)
     try {
       await axios.post(`/sessions/${session.session_id}/score`);
@@ -319,7 +330,41 @@ function EnhancedVoiceChat({ session, onEndSession }) {
     updateFeatures(newFeatures);
   };
 
+  const roastOverlay = (roastLoading || roastData || roastError) ? ReactDOM.createPortal(
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'rgba(0,0,0,0.75)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      zIndex: 9999,
+    }}>
+      <RoastCard
+        roastData={roastLoading ? null : roastData}
+        error={roastError}
+      />
+      {!roastLoading && (
+        <button
+          onClick={onEndSession}
+          style={{
+            marginTop: 16,
+            background: 'transparent',
+            color: '#aaa',
+            border: '1px solid #555',
+            borderRadius: 8,
+            padding: '8px 20px',
+            cursor: 'pointer',
+            fontSize: 13,
+          }}
+        >
+          Close
+        </button>
+      )}
+    </div>,
+    document.body
+  ) : null;
+
   return (
+    <>
     <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-indigo-600 text-white p-4">
@@ -349,7 +394,8 @@ function EnhancedVoiceChat({ session, onEndSession }) {
             </button>
             <button
               onClick={endSession}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded"
+              disabled={roastLoading}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               End Session
             </button>
@@ -526,38 +572,9 @@ function EnhancedVoiceChat({ session, onEndSession }) {
         )}
       </div>
 
-      {(roastLoading || roastData || roastError) && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.75)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999,
-        }}>
-          <RoastCard
-            roastData={roastLoading ? null : roastData}
-            error={roastError}
-          />
-          {!roastLoading && (
-            <button
-              onClick={onEndSession}
-              style={{
-                marginTop: 16,
-                background: 'transparent',
-                color: '#aaa',
-                border: '1px solid #555',
-                borderRadius: 8,
-                padding: '8px 20px',
-                cursor: 'pointer',
-                fontSize: 13,
-              }}
-            >
-              Close
-            </button>
-          )}
-        </div>
-      )}
     </div>
+    {roastOverlay}
+    </>
   );
 }
 
