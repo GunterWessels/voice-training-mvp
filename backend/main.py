@@ -525,11 +525,14 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 scenario_obj = scenario_result.scalar_one_or_none()
                 if scenario_obj and scenario_obj.arc:
                     arc_tracker = ArcStageTracker(scenario_obj.arc)
-    except Exception:
-        pass  # arc engine is best-effort; MVP path continues without it
+    except Exception as _arc_init_err:
+        logging.warning("arc_engine init failed for session %s: %s", session_id, _arc_init_err)
 
     # If PostgreSQL session found but no legacy SQLite session, create a minimal session dict
     if pg_session and not session:
+        # TODO: derive persona_id from pg_session.scenario.persona_id — hardcoded
+        # to vac_buyer for the current BSCI CCE context only. Fix before non-VAC
+        # scenarios are deployed.
         persona_id = PERSONAS.get("vac_buyer", {}).get("id", "vac_buyer")
         session = {
             "session_id": session_id,
@@ -638,8 +641,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                                 .values(arc_stage_reached=arc_tracker.current_stage)
                             )
                             await pg.commit()
-                    except Exception:
-                        pass  # best-effort DB update
+                    except Exception as _arc_update_err:
+                        logging.warning("arc_engine DB update failed for session %s: %s", session_id, _arc_update_err)
 
             # Refresh cartridge (features can change mid-session)
             cartridge_data = cartridge_service.get_cartridge_for_practice(cartridge_id) if cartridge_id else None
