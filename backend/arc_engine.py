@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import List, Dict, Any, Optional
 
@@ -25,7 +26,7 @@ class ConditionEvaluator:
         return [m["text"].lower() for m in history if m.get("speaker") == "user"]
 
     def _contains_seed(self, text: str, domain: str) -> bool:
-        return any(seed in text for seed in COF_SEEDS[domain])
+        return any(re.search(r'\b' + re.escape(seed) + r'\b', text) for seed in COF_SEEDS[domain])
 
     def cof_clinical_mentioned(self, history: List[Dict]) -> bool:
         return any(self._contains_seed(t, "clinical") for t in self._user_turns(history))
@@ -75,7 +76,11 @@ class ConditionEvaluator:
     def evaluate_condition(self, condition: str, history: List[Dict]) -> bool:
         cond = condition.strip()
         if cond.startswith("open_ended_questions >="):
-            n = int(cond.split(">=")[1].strip())
+            try:
+                n = int(cond.split(">=")[1].strip())
+            except ValueError:
+                logging.warning(f"arc_engine: malformed condition '{cond}' — expected integer after >=")
+                return False
             return self.open_ended_questions_count(history) >= n
         mapping = {
             "cof_clinical_mentioned == true": self.cof_clinical_mentioned,
@@ -87,7 +92,10 @@ class ConditionEvaluator:
             "resolution_positive == true": self.resolution_positive,
         }
         fn = mapping.get(cond)
-        return fn(history) if fn else False
+        if fn is None:
+            logging.warning(f"arc_engine: unknown condition string '{cond}' — stage will not advance")
+            return False
+        return fn(history)
 
 
 class ArcStageTracker:
@@ -98,7 +106,11 @@ class ArcStageTracker:
         self.cof_flags = {"clinical": False, "operational": False, "financial": False}
 
     def evaluate(self, history: List[Dict]) -> bool:
-        """Evaluate current stage unlock condition. Returns True if stage advanced."""
+        """Evaluate current stage unlock condition. Returns True if stage advanced.
+
+        Design constraint: advances exactly one stage per call. Call on every
+        WebSocket turn to ensure no stage is skipped. Batch catch-up not supported.
+        """
         self._update_cof_flags(history)
         current = self._get_stage(self.current_stage)
         if not current:
