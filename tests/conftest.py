@@ -12,6 +12,9 @@ os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-at-least-32-chars-
 os.environ.setdefault("OPENAI_API_KEY", "sk-test")
 os.environ.setdefault("ELEVENLABS_API_KEY", "test-el-key")
 os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost:3000")
+# NullPool mode: prevents asyncpg event-loop conflicts when TestClient and async fixtures
+# run in different loops during the same pytest session.
+os.environ.setdefault("TESTING", "1")
 
 # Add backend dir to sys.path so that intra-backend imports (ai_service, auth, etc.) resolve.
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "backend")

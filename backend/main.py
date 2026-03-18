@@ -134,6 +134,15 @@ clinical outcomes at scale, and organizational risk. You want an executive summa
 clear tradeoffs, and a credible plan for adoption.""",
         "avatar": "🏥",
     },
+    "vac_buyer": {
+        "id": "vac_buyer",
+        "name": "VAC Committee Buyer",
+        "description": "Value analysis committee member focused on clinical and financial outcomes",
+        "prompt": """You are a Value Analysis Committee (VAC) member at a hospital system. You evaluate
+new medical technology purchases. You are skeptical and ask probing questions about clinical
+outcomes, cost, workflow integration, and reimbursement. Respond naturally and conversationally.""",
+        "avatar": "🏛️",
+    },
 }
 
 
@@ -388,6 +397,91 @@ async def join_cohort(body: JoinRequest):
         raise HTTPException(status_code=400, detail="Invalid cohort token")
     return {"status": "ok", "message": "Check your email for a magic link"}
 
+class ApiSessionCreate(BaseModel):
+    persona_id: str
+    scenario_id: str  # UUID string of the PostgreSQL scenario row
+    preset: str = "full_practice"
+
+
+@app.post("/api/sessions", status_code=201)
+async def create_api_session(
+    body: ApiSessionCreate,
+    user: dict = Depends(get_current_user),
+):
+    """Create a PostgreSQL-backed training session (production path)."""
+    import uuid as uuid_mod
+    from backend.db import AsyncSessionLocal
+    from backend.models import Session as SessionModel, Scenario as ScenarioModel, User as UserModel
+    from sqlalchemy import select
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    async with AsyncSessionLocal() as pg:
+        result = await pg.execute(
+            select(ScenarioModel).where(ScenarioModel.id == uuid_mod.UUID(body.scenario_id))
+        )
+        scenario = result.scalar_one_or_none()
+        if not scenario:
+            raise HTTPException(status_code=404, detail="Scenario not found")
+
+        # user_id from JWT may not be a valid UUID in test environments — fall back to a
+        # deterministic UUID derived from the sub string so the DB constraint is satisfied.
+        try:
+            user_uuid = uuid_mod.UUID(user["user_id"])
+        except (ValueError, AttributeError):
+            user_uuid = uuid_mod.uuid5(uuid_mod.NAMESPACE_DNS, str(user["user_id"]))
+
+        # Ensure the user row exists (upsert) so the FK on sessions.user_id is satisfied
+        await pg.execute(
+            pg_insert(UserModel)
+            .values(
+                id=user_uuid,
+                email=user.get("email") or f"{user_uuid}@unknown.internal",
+                role=user.get("role", "rep"),
+            )
+            .on_conflict_do_nothing(index_elements=["id"])
+        )
+
+        session_id = uuid_mod.uuid4()
+        pg_session = SessionModel(
+            id=session_id,
+            user_id=user_uuid,
+            scenario_id=scenario.id,
+            preset=body.preset,
+            status="in_progress",
+            arc_stage_reached=1,
+        )
+        pg.add(pg_session)
+        await pg.commit()
+
+    return {"session_id": str(session_id)}
+
+
+@app.get("/api/sessions/{session_id}")
+async def get_api_session(
+    session_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Get PostgreSQL session details including arc stage reached."""
+    import uuid as uuid_mod
+    from backend.db import AsyncSessionLocal
+    from backend.models import Session as SessionModel
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as pg:
+        result = await pg.execute(
+            select(SessionModel).where(SessionModel.id == uuid_mod.UUID(session_id))
+        )
+        session = result.scalar_one_or_none()
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {
+            "session_id": str(session.id),
+            "arc_stage_reached": session.arc_stage_reached,
+            "status": session.status,
+            "preset": session.preset,
+        }
+
+
 @app.get("/api/sessions")
 async def get_sessions_api(user: dict = Depends(get_current_user)):
     """Auth-protected alias used by tests."""
@@ -395,13 +489,55 @@ async def get_sessions_api(user: dict = Depends(get_current_user)):
 
 
 @app.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
+async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str = ""):
     """WebSocket endpoint for real-time conversation"""
+
+    # JWT verification — required when token is supplied; legacy path skips if empty
+    if token:
+        ws_user = await verify_ws_token(token)
+        if not ws_user:
+            await websocket.close(code=4001)
+            return
 
     await websocket.accept()
     connections[session_id] = websocket
 
     session = db.get_session(session_id)
+
+    # --- NEW: also check PostgreSQL for arc-enabled sessions ---
+    pg_session = None
+    arc_tracker = None
+    try:
+        import uuid as uuid_mod
+        from backend.db import AsyncSessionLocal
+        from backend.models import Session as PgSessionModel, Scenario as PgScenarioModel
+        from arc_engine import ArcStageTracker
+        from sqlalchemy import select as sa_select
+        async with AsyncSessionLocal() as pg:
+            pg_result = await pg.execute(
+                sa_select(PgSessionModel).where(PgSessionModel.id == uuid_mod.UUID(session_id))
+            )
+            pg_session = pg_result.scalar_one_or_none()
+            if pg_session:
+                scenario_result = await pg.execute(
+                    sa_select(PgScenarioModel).where(PgScenarioModel.id == pg_session.scenario_id)
+                )
+                scenario_obj = scenario_result.scalar_one_or_none()
+                if scenario_obj and scenario_obj.arc:
+                    arc_tracker = ArcStageTracker(scenario_obj.arc)
+    except Exception:
+        pass  # arc engine is best-effort; MVP path continues without it
+
+    # If PostgreSQL session found but no legacy SQLite session, create a minimal session dict
+    if pg_session and not session:
+        persona_id = PERSONAS.get("vac_buyer", {}).get("id", "vac_buyer")
+        session = {
+            "session_id": session_id,
+            "persona_id": persona_id,
+            "cartridge_id": None,
+            "scenario_id": str(pg_session.scenario_id),
+        }
+
     if not session:
         await websocket.send_json({"error": "Session not found"})
         await websocket.close()
@@ -481,6 +617,29 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 continue
 
             db.add_message(session_id=session_id, speaker="user", text=user_text)
+
+            # Arc engine evaluation (PostgreSQL sessions only)
+            if arc_tracker:
+                conversation_history_for_arc = [
+                    {"speaker": m["speaker"], "text": m["text"]}
+                    for m in db.get_messages(session_id)
+                ]
+                advanced = arc_tracker.evaluate(conversation_history_for_arc)
+                if advanced:
+                    try:
+                        import uuid as uuid_mod
+                        from backend.db import AsyncSessionLocal
+                        from backend.models import Session as PgSessionModel
+                        from sqlalchemy import update as sa_update
+                        async with AsyncSessionLocal() as pg:
+                            await pg.execute(
+                                sa_update(PgSessionModel)
+                                .where(PgSessionModel.id == uuid_mod.UUID(session_id))
+                                .values(arc_stage_reached=arc_tracker.current_stage)
+                            )
+                            await pg.commit()
+                    except Exception:
+                        pass  # best-effort DB update
 
             # Refresh cartridge (features can change mid-session)
             cartridge_data = cartridge_service.get_cartridge_for_practice(cartridge_id) if cartridge_id else None
