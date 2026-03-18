@@ -1,4 +1,3 @@
-import os
 import pytest
 from sqlalchemy import text
 from backend.db import engine
@@ -11,7 +10,7 @@ async def test_all_tables_exist():
     async with engine.connect() as conn:
         for table in tables:
             result = await conn.execute(
-                text("SELECT 1 FROM information_schema.tables WHERE table_name = :t"),
+                text("SELECT 1 FROM information_schema.tables WHERE table_name = :t AND table_schema = 'public'"),
                 {"t": table}
             )
             assert result.fetchone() is not None, f"Table {table} missing"
