@@ -59,11 +59,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm install -g @railway/cli
-      - run: railway up --service voice-training-backend --source ./backend --detach
+      - run: railway up --service voice-training-backend --detach ./backend
         env:
           RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}"
           RAILWAY_PROJECT_ID: "902899d1-cafb-419a-861d-48609e7353ce"
-      - run: railway up --service voice-training-frontend --source ./frontend-next --detach
+      - run: railway up --service voice-training-frontend --detach ./frontend-next
         env:
           RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}"
           RAILWAY_PROJECT_ID: "902899d1-cafb-419a-861d-48609e7353ce"
