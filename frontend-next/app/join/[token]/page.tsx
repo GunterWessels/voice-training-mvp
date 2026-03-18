@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 interface Props {
   params: { token: string }
@@ -10,9 +9,8 @@ export default function JoinPage({ params }: Props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
-  const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const res = await fetch('/api/join', {
       method: 'POST',
