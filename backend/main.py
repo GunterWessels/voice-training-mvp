@@ -406,11 +406,13 @@ async def join_cohort(body: JoinRequest):
             from supabase import create_client
             admin_client = create_client(supabase_url, service_key)
             first_name = body.name.split()[0] if body.name else ""
-            # invite_user_by_email creates the account (if new) and sends the magic link.
-            # The `data` kwarg is written to user_metadata on the created user.
-            admin_client.auth.admin.invite_user_by_email(
-                body.email,
-                options={"data": {"first_name": first_name}},
+            # Step 1: invite the user (creates account if new, sends magic link)
+            invite_response = admin_client.auth.admin.invite_user_by_email(body.email)
+            # Step 2: write first_name to user_metadata using the user_id from the invite response
+            user_id = invite_response.user.id
+            admin_client.auth.admin.update_user_by_id(
+                user_id,
+                {"user_metadata": {"first_name": first_name}},
             )
         except Exception:
             # Non-fatal: enrollment still succeeds even if the Supabase call fails
