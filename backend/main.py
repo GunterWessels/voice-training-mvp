@@ -490,6 +490,43 @@ async def get_sessions_api(user: dict = Depends(get_current_user)):
     return []
 
 
+@app.get("/api/series")
+async def get_series(user: dict = Depends(get_current_user)):
+    """List available training series (scenarios) for the current cohort."""
+    # Return static list for now — real impl queries Scenario table
+    return [
+        {"id": "tria-stents", "name": "VAC Stakeholder — Tria Stents", "persona": "VAC Buyer", "arc_stages": 6},
+    ]
+
+@app.get("/api/completions")
+async def get_completions(user: dict = Depends(get_current_user)):
+    """Return rep's session completion + cert status."""
+    return {"sessions_completed": 0, "certs_earned": 0, "streak": 0, "cof_pass_rate": 0.0}
+
+@app.get("/api/manager/cohort")
+async def get_manager_cohort(user: dict = Depends(get_current_user)):
+    """Return cohort rep summary for manager view."""
+    return {"reps": [], "total": 0}
+
+@app.get("/api/manager/export")
+async def export_manager_lms(user: dict = Depends(get_current_user)):
+    """Return LMS-compatible CSV of cohort completions."""
+    from fastapi.responses import Response
+    csv = "name,email,sessions,certs,last_active\n"
+    return Response(content=csv, media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=cohort.csv"})
+
+@app.get("/api/admin/metrics")
+async def get_admin_metrics(user: dict = Depends(get_current_user)):
+    """Return platform-wide metrics for admin dashboard."""
+    return {
+        "sessions_30d": 0,
+        "cost_30d_usd": 0.0,
+        "flagged_sessions": [],
+        "completion_rate_by_cohort": [],
+    }
+
+
 @app.post("/sessions/{session_id}/roast")
 async def roast_session(session_id: str):
     """Generate Derp Top 40 roast for a completed session."""
