@@ -657,6 +657,23 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
             # Avoid duplicating the most recent user message in both history and user_input
             conversation_history = db.get_messages(session_id)[:-1]
 
+            # Token budget cap check (PostgreSQL sessions only)
+            if pg_session:
+                try:
+                    from metering import get_session_cost, is_over_budget
+                    current_cost = await get_session_cost(session_id)
+                    preset = pg_session.preset or "full_practice"
+                    if is_over_budget(current_cost, preset):
+                        await websocket.send_json({
+                            "type": "ai_message",
+                            "text": "This has been a great conversation. Let's pick this up next time.",
+                            "audio": None,
+                            "session_end": True,
+                        })
+                        break
+                except Exception as _budget_err:
+                    logging.warning("budget cap check failed: %s", _budget_err)
+
             ai_response = await ai_service.generate_response_with_audio(
                 persona=persona,
                 conversation_history=conversation_history,

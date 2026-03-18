@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import os
 import sys
 from jose import jwt
@@ -27,7 +28,7 @@ from backend.main import app
 def client():
     return TestClient(app)
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client():
     from httpx import AsyncClient, ASGITransport
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -49,7 +50,7 @@ def expired_jwt():
         os.environ["SUPABASE_JWT_SECRET"], algorithm="HS256"
     )
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def seeded_scenario():
     """Insert a minimal test scenario and return its UUID."""
     from backend.db import AsyncSessionLocal
@@ -75,12 +76,12 @@ async def seeded_scenario():
         await db.commit()
         yield {"scenario_id": str(scenario.id), "division_id": str(div.id)}
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def tria_scenario_id(seeded_scenario):
     """Alias: returns the scenario UUID string for integration tests."""
     return seeded_scenario["scenario_id"]
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def seeded_metering_session():
     """Insert a minimal User + Session + 3 MeteringEvents totaling $0.045 and return the session UUID."""
     from backend.db import AsyncSessionLocal
