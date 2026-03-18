@@ -1,10 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "build": { "builder": "DOCKERFILE" },
+  "build": {},
   "deploy": {
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3,
-    "healthcheckPath": "/",
-    "healthcheckTimeout": 30
+    "restartPolicyMaxRetries": 3
   }
 }
