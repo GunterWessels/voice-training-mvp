@@ -10,7 +10,7 @@ export default function JoinPage({ params }: Props) {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault()
     const res = await fetch('/api/join', {
       method: 'POST',
