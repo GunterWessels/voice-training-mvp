@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -12,6 +14,7 @@ load_dotenv()
 from ai_service import AIService
 from database import Database
 from cartridge_service import CartridgeService, DealContext
+from roast_service import RoastService
 
 app = FastAPI(title="Voice Training Platform MVP")
 
@@ -232,6 +235,20 @@ async def get_session(session_id: str):
         "cartridge": _cartridge_summary(session.get("cartridge_id")),
         "scenario": _scenario_summary(session.get("cartridge_id"), session.get("scenario_id")),
     }
+
+
+@app.post("/sessions/{session_id}/roast")
+async def roast_session(session_id: str):
+    """Generate Derp Top 40 roast for a completed session."""
+    roast_service = RoastService()
+    try:
+        result = await asyncio.wait_for(
+            roast_service.generate(session_id),
+            timeout=15.0
+        )
+        return result
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=408, detail={"error": "timeout"})
 
 
 @app.get("/sessions")
