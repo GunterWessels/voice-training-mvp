@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import CCEHeader from '@/components/CCEHeader'
+import CCEHeader from '../components/CCEHeader'
 
 describe('CCEHeader', () => {
   it('renders BOSTON SCIENTIFIC text', () => {
