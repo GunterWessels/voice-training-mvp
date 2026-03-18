@@ -29,11 +29,11 @@ CREATE INDEX idx_knowledge_chunks_product ON knowledge_chunks (product_id);
 
 -- Scenarios: Add RAG and grading metadata
 ALTER TABLE scenarios
-  ADD COLUMN IF NOT EXISTS cof_map          JSONB COMMENT 'Clinical/Operational/Financial dimension mapping',
-  ADD COLUMN IF NOT EXISTS argument_rubrics JSONB COMMENT 'Argument quality rubrics per domain',
-  ADD COLUMN IF NOT EXISTS grading_criteria JSONB COMMENT 'Scoring criteria for completions',
-  ADD COLUMN IF NOT EXISTS methodology      JSONB COMMENT 'RAG retrieval settings per scenario';
+  ADD COLUMN IF NOT EXISTS cof_map          JSONB,
+  ADD COLUMN IF NOT EXISTS argument_rubrics JSONB,
+  ADD COLUMN IF NOT EXISTS grading_criteria JSONB,
+  ADD COLUMN IF NOT EXISTS methodology      JSONB;
 
 -- Completions: Add dimension-specific scoring
 ALTER TABLE completions
-  ADD COLUMN IF NOT EXISTS dimension_scores JSONB COMMENT 'Scores by COF dimension and argument domain';
+  ADD COLUMN IF NOT EXISTS dimension_scores JSONB;
