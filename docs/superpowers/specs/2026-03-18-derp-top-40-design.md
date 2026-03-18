@@ -166,7 +166,7 @@ Analyze the transcript and return JSON with exactly these fields:
 ## Data Flow
 
 ```
-Session ends (WebSocket onclose)
+User clicks End Session (endSession button)
   → Frontend: POST /sessions/{id}/roast
   → Backend: pull messages[] from SQLite
   → Claude: analyze transcript → JSON
