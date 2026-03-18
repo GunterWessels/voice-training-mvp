@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Knowledge Chunks Table (RAG vector store)
 CREATE TABLE knowledge_chunks (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             TEXT PRIMARY KEY,
   scenario_id    UUID REFERENCES scenarios(id) ON DELETE CASCADE,
   product_id     TEXT NOT NULL,
   domain         TEXT NOT NULL CHECK (domain IN ('product','clinical','cof','objection','compliance','stakeholder')),

@@ -61,16 +61,25 @@ async def upsert_chunk(db: AsyncSession, chunk: Dict[str, Any], embedding: List[
            "embedding": embedding_literal, "keywords": chunk["keywords"]})
 
 
-async def ingest_yaml(yaml_path: str, db: AsyncSession) -> Dict[str, int]:
-    """Full pipeline: parse YAML -> embed -> upsert. Returns stats."""
+async def ingest_yaml(yaml_path: str, db: AsyncSession,
+                      scenario_id: Optional[str] = None) -> Dict[str, int]:
+    """Full pipeline: parse YAML -> embed -> upsert. Returns stats.
+
+    scenario_id: override the scenario UUID (takes precedence over YAML scenario_ids).
+    """
     chunks = chunk_yaml_file(yaml_path)
     ingested, skipped = 0, 0
     for chunk in chunks:
+        # Override scenario_id when provided explicitly
+        if scenario_id is not None:
+            chunk = {**chunk, "scenario_ids": [scenario_id]}
         try:
             embedding = await embed_text(chunk["content"])
             await upsert_chunk(db, chunk, embedding)
             ingested += 1
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.warning("Skipped chunk %s: %s", chunk.get("id"), e)
             skipped += 1
     await db.commit()
     return {"ingested": ingested, "skipped": skipped, "total": len(chunks)}
