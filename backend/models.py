@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, date
 from typing import Optional
 from decimal import Decimal
-from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInteger, Date, func
+from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInteger, Date, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 from pgvector.sqlalchemy import Vector
@@ -150,7 +150,7 @@ class KnowledgeChunk(Base):
     __tablename__ = "knowledge_chunks"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    scenario_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    scenario_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("scenarios.id", ondelete="CASCADE"), nullable=True)
     product_id: Mapped[str] = mapped_column(String, nullable=False)
     domain: Mapped[str] = mapped_column(String, nullable=False)
     section: Mapped[Optional[str]] = mapped_column(String, nullable=True)
