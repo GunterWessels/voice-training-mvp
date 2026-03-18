@@ -2,8 +2,8 @@ import os
 import uuid
 import logging
 from typing import Optional
-from backend.db import AsyncSessionLocal
-from backend.models import MeteringEvent
+from db import AsyncSessionLocal
+from models import MeteringEvent
 
 COST_TABLE = {
     ("openai", "gpt-4o-mini"): {"input": 0.15 / 1_000_000, "output": 0.60 / 1_000_000},

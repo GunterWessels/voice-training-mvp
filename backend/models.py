@@ -6,7 +6,7 @@ from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInt
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 from pgvector.sqlalchemy import Vector
-from backend.db import Base
+from db import Base
 
 
 class Division(Base):

@@ -442,8 +442,8 @@ async def create_api_session(
 ):
     """Create a PostgreSQL-backed training session (production path)."""
     import uuid as uuid_mod
-    from backend.db import AsyncSessionLocal
-    from backend.models import Session as SessionModel, Scenario as ScenarioModel, User as UserModel
+    from db import AsyncSessionLocal
+    from models import Session as SessionModel, Scenario as ScenarioModel, User as UserModel
     from sqlalchemy import select
     from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -495,8 +495,8 @@ async def get_api_session(
 ):
     """Get PostgreSQL session details including arc stage reached."""
     import uuid as uuid_mod
-    from backend.db import AsyncSessionLocal
-    from backend.models import Session as SessionModel
+    from db import AsyncSessionLocal
+    from models import Session as SessionModel
     from sqlalchemy import select
 
     async with AsyncSessionLocal() as pg:
@@ -523,7 +523,7 @@ async def get_sessions_api(user: dict = Depends(get_current_user)):
 @app.get("/api/series")
 async def get_series(user: dict = Depends(get_current_user)):
     """List available training series for the current user."""
-    from backend.db import AsyncSessionLocal
+    from db import AsyncSessionLocal
     from sqlalchemy import text as sa_text
     async with AsyncSessionLocal() as pg:
         result = await pg.execute(sa_text("""
@@ -622,8 +622,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
     arc_tracker = None
     try:
         import uuid as uuid_mod
-        from backend.db import AsyncSessionLocal
-        from backend.models import Session as PgSessionModel, Scenario as PgScenarioModel
+        from db import AsyncSessionLocal
+        from models import Session as PgSessionModel, Scenario as PgScenarioModel
         from arc_engine import ArcStageTracker
         from sqlalchemy import select as sa_select
         async with AsyncSessionLocal() as pg:
@@ -763,8 +763,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 if advanced:
                     try:
                         import uuid as uuid_mod
-                        from backend.db import AsyncSessionLocal
-                        from backend.models import Session as PgSessionModel
+                        from db import AsyncSessionLocal
+                        from models import Session as PgSessionModel
                         from sqlalchemy import update as sa_update
                         async with AsyncSessionLocal() as pg:
                             await pg.execute(
@@ -781,8 +781,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
             _rag_chunks: List[Dict[str, Any]] = []
             if session_id in session_context and arc_tracker:
                 try:
-                    from backend.argument_evaluator import evaluate_turn
-                    from backend.rag_service import retrieve, should_retrieve_for_stage
+                    from argument_evaluator import evaluate_turn
+                    from rag_service import retrieve, should_retrieve_for_stage
 
                     _ctx = session_context[session_id]
                     _arc_stage = arc_tracker.current_stage
@@ -812,7 +812,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                     # Tier 1 RAG retrieval for stages 3-5
                     if should_retrieve_for_stage(_arc_stage):
                         try:
-                            from backend.db import AsyncSessionLocal
+                            from db import AsyncSessionLocal
                             async with AsyncSessionLocal() as _rag_db:
                                 _rag_chunks = await retrieve(
                                     query=user_text,
@@ -866,8 +866,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                         # Grading debrief on budget-cap session end
                         try:
                             import json as _json
-                            from backend.grading_agent import grade_session as _grade_session
-                            from backend.db import AsyncSessionLocal as _GradeSessionLocal
+                            from grading_agent import grade_session as _grade_session
+                            from db import AsyncSessionLocal as _GradeSessionLocal
                             from sqlalchemy import text as _sa_text
                             _gctx = session_context.get(session_id, {})
                             if _gctx.get("grading_criteria") and _gctx.get("transcript"):
@@ -986,8 +986,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
         # Grading debrief on clean disconnect
         try:
             import json as _json
-            from backend.grading_agent import grade_session as _grade_session
-            from backend.db import AsyncSessionLocal as _GradeSessionLocal
+            from grading_agent import grade_session as _grade_session
+            from db import AsyncSessionLocal as _GradeSessionLocal
             from sqlalchemy import text as _sa_text
             _gctx = session_context.get(session_id, {})
             if _gctx.get("grading_criteria") and _gctx.get("transcript"):
