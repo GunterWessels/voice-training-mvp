@@ -55,7 +55,22 @@ Renders on session end. Three states: LOADING → PLAYING → SHARED.
 
 ## Claude Analysis Prompt
 
-Single call, returns structured JSON. System prompt:
+Single call via the existing `AIService` (OpenAI-first, Anthropic fallback). `max_tokens: 250`. On JSON parse failure, `roast_service.py` catches the exception and returns a hardcoded fallback roast so the frontend always gets a valid response — never a 500.
+
+**Hardcoded fallback:**
+```json
+{
+  "genre": "Elevator Bossa Nova",
+  "genre_emoji": "🛗",
+  "character_type": "The Mystery Rep",
+  "judgment": "Something happened. We're not sure what.",
+  "quote": "...",
+  "audio_base64": null
+}
+```
+When `audio_base64` is null, RoastCard renders the text card only (no audio bar, no share button).
+
+System prompt:
 
 ```
 You are the Derp-Top-40 DJ. A salesperson just finished a role-play session.
@@ -91,16 +106,21 @@ Analyze the transcript and return JSON with exactly these fields:
 
 ## ElevenLabs TTS Parameters
 
-- Voice: narrator/dramatic preset (existing `elevenlabs_service.py` voice)
-- Speed: 0.85x (for dramatic effect)
-- Input: `tts_script` field from Claude response
-- Output: mp3 bytes → base64 encoded in API response
+- **Voice ID:** `onwK4e9ZLuTAKqWW03F9` (Daniel — deep, dramatic; distinct from all existing persona voices)
+- **Voice settings:** `stability: 0.75`, `similarity_boost: 0.85`, `style: 0.4`, `use_speaker_boost: true`
+- **Pacing:** Controlled entirely via `tts_script` wording (ellipses, sentence breaks). No `speed` parameter — the v1 ElevenLabs endpoint does not support it.
+- **Input:** `tts_script` field from Claude response
+- **Output:** mp3 bytes → base64 encoded in API response
+
+**Note on audio response key:** The roast endpoint returns `audio_base64` as a flat top-level field. This intentionally differs from the existing `audio.audio_data` convention used by the WebSocket voice chat path — the roast is a one-shot REST response, not a streaming audio event.
 
 ---
 
 ## Frontend: RoastCard Component
 
 **File:** `frontend/src/components/RoastCard.js`
+
+**Timeout:** The `/roast` endpoint has a 15-second hard timeout (Claude + ElevenLabs combined). On timeout, the backend returns `HTTP 408` with `{"error": "timeout"}`. RoastCard renders: "The roast machine timed out. Your performance was too much to process." No spinner indefinitely.
 
 **States:**
 
@@ -109,6 +129,7 @@ Analyze the transcript and return JSON with exactly these fields:
 | LOADING | Spinning 🎙️ + "Generating your roast..." |
 | PLAYING | Now Playing card with auto-play audio |
 | SHARED | Share button flips to "Copied!" for 2s |
+| ERROR | Static fallback message (timeout or parse failure) |
 
 **Card layout (PLAYING state):**
 ```
