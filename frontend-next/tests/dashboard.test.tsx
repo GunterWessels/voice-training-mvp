@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 // Mobile layout tests — verify components render at 375px without crash
@@ -12,21 +12,27 @@ describe('Dashboard mobile layout', () => {
     Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true })
   })
 
-  it('rep dashboard renders at 375px', async () => {
+  it('rep dashboard renders practice queue and stats at 375px', async () => {
     const { default: Dashboard } = await import('../app/dashboard/page')
-    const { container } = render(<Dashboard />)
-    expect(container.firstChild).toBeInTheDocument()
+    render(<Dashboard />)
+    expect(screen.getByText('My Training')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /start/i })).toBeInTheDocument()
+    expect(screen.getByText('Sessions')).toBeInTheDocument()
   })
 
-  it('manager dashboard renders at 375px', async () => {
+  it('manager dashboard renders cohort table and export link at 375px', async () => {
     const { default: ManagerPage } = await import('../app/manager/page')
-    const { container } = render(<ManagerPage />)
-    expect(container.firstChild).toBeInTheDocument()
+    render(<ManagerPage />)
+    expect(screen.getByText('Cohort Overview')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /export csv/i })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toBeInTheDocument()
   })
 
-  it('admin dashboard renders at 375px', async () => {
+  it('admin dashboard renders KPIs and flagged sessions at 375px', async () => {
     const { default: AdminPage } = await import('../app/admin/page')
-    const { container } = render(<AdminPage />)
-    expect(container.firstChild).toBeInTheDocument()
+    render(<AdminPage />)
+    expect(screen.getByText('Platform Metrics')).toBeInTheDocument()
+    expect(screen.getByText('Flagged Sessions')).toBeInTheDocument()
+    expect(screen.getByText('Cost (USD)')).toBeInTheDocument()
   })
 })

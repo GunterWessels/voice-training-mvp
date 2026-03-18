@@ -26,7 +26,7 @@ export default function ManagerPage() {
           </thead>
           <tbody>
             <tr>
-              <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">
+              <td colSpan={4} role="status" className="px-4 py-8 text-center text-sm text-gray-400">
                 No reps enrolled yet.
               </td>
             </tr>
