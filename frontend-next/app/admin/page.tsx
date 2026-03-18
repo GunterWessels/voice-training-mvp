@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
 import CCEHeader from '@/components/CCEHeader'
 
 interface Metrics {
@@ -30,10 +31,17 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
-    fetch(`${API}/api/admin/metrics`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d) })
-      .catch(() => {/* silent */})
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const headers: Record<string, string> = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {}
+
+      fetch(`${API}/api/admin/metrics`, { headers })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setData(d) })
+        .catch(() => {/* silent */})
+    })
   }, [])
 
   const { metrics, flagged_sessions } = data

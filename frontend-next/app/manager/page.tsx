@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
 import CCEHeader from '@/components/CCEHeader'
 
 interface Rep {
@@ -20,17 +21,38 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 export default function ManagerPage() {
   const [cohort, setCohort] = useState<CohortData>({ total_reps: 0, certified_reps: 0, reps: [] })
+  const [authHeader, setAuthHeader] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    fetch(`${API}/api/manager/cohort`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setCohort(data) })
-      .catch(() => {/* silent */})
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const headers: Record<string, string> = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {}
+      setAuthHeader(headers)
+
+      fetch(`${API}/api/manager/cohort`, { headers })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setCohort(data) })
+        .catch(() => {/* silent */})
+    })
   }, [])
 
   const certPct = cohort.total_reps > 0
     ? Math.round((cohort.certified_reps / cohort.total_reps) * 100)
     : 0
+
+  async function handleExportCSV() {
+    const res = await fetch(`${API}/api/manager/export`, { headers: authHeader })
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'cohort.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">
@@ -51,12 +73,12 @@ export default function ManagerPage() {
               style={{ width: `${certPct}%` }}
             />
           </div>
-          <a
-            href={`${API}/api/manager/export`}
+          <button
+            onClick={handleExportCSV}
             className="text-sm text-[#0073CF] hover:underline"
           >
             Export CSV
-          </a>
+          </button>
         </div>
 
         {/* Rep table */}

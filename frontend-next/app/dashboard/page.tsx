@@ -44,13 +44,19 @@ export default function DashboardPage() {
     })
 
     // Load stats and series — silent fail for beta
-    Promise.all([
-      fetch(`${API}/api/completions`).then(r => r.ok ? r.json() : null),
-      fetch(`${API}/api/series`).then(r => r.ok ? r.json() : null),
-    ]).then(([comp, ser]) => {
-      if (comp) setCompletions(comp)
-      if (ser?.series) setSeries(ser.series)
-    }).catch(() => {/* silent */})
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const headers: Record<string, string> = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {}
+
+      Promise.all([
+        fetch(`${API}/api/completions`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API}/api/series`, { headers }).then(r => r.ok ? r.json() : null),
+      ]).then(([comp, ser]) => {
+        if (comp) setCompletions(comp)
+        if (ser?.series) setSeries(ser.series)
+      }).catch(() => {/* silent */})
+    })
   }, [])
 
   const scenario = series[0]
