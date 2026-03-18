@@ -1,11 +1,11 @@
 'use client'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
-export default function SessionNewPage() {
+function SessionNewContent() {
   const router = useRouter()
   const params = useSearchParams()
   const seriesId = params.get('series')
@@ -31,5 +31,17 @@ export default function SessionNewPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
       <p className="text-sm text-[#718096]">Starting session…</p>
     </div>
+  )
+}
+
+export default function SessionNewPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <p className="text-sm text-[#718096]">Loading…</p>
+      </div>
+    }>
+      <SessionNewContent />
+    </Suspense>
   )
 }
