@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 // Mobile layout tests — verify components render at 375px without crash
@@ -41,11 +41,22 @@ describe('Dashboard mobile layout', () => {
     expect(screen.getByText('No reps enrolled yet.')).toBeInTheDocument()
   })
 
-  it('admin dashboard renders KPIs and flagged sessions at 375px', async () => {
+  it('admin dashboard renders three tabs and shows KPIs when Metrics tab clicked', async () => {
     const { default: AdminPage } = await import('../app/admin/page')
     render(<AdminPage />)
+
+    // All three tab buttons must be present
+    expect(screen.getByRole('button', { name: 'Users' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sessions' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Metrics' })).toBeInTheDocument()
+
+    // KPI content is hidden until Metrics tab is active
+    expect(screen.queryByText('Platform Metrics')).not.toBeInTheDocument()
+
+    // Click Metrics tab — KPI cards should appear
+    fireEvent.click(screen.getByRole('button', { name: 'Metrics' }))
     expect(screen.getByText('Platform Metrics')).toBeInTheDocument()
-    expect(screen.getByText('Flagged Sessions')).toBeInTheDocument()
     expect(screen.getByText('Cost (USD)')).toBeInTheDocument()
+    expect(screen.getByText('Flagged Sessions')).toBeInTheDocument()
   })
 })
