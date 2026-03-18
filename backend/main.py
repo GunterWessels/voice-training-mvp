@@ -540,6 +540,55 @@ async def get_series(user: dict = Depends(get_current_user)):
     ]
     return {"series": series}
 
+
+@app.post("/api/series/{series_id}/sessions", status_code=201)
+async def start_series_session(series_id: str, user: dict = Depends(get_current_user)):
+    """Create a session from the first scenario in a practice series."""
+    import uuid as uuid_mod
+    from db import AsyncSessionLocal
+    from models import Session as SessionModel, User as UserModel
+    from sqlalchemy import text as sa_text
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    async with AsyncSessionLocal() as pg:
+        # Resolve first scenario in series
+        result = await pg.execute(sa_text("""
+            SELECT s.id::text AS scenario_id, s.persona_id
+            FROM practice_series_items psi
+            JOIN scenarios s ON s.id = psi.scenario_id
+            WHERE psi.series_id = :series_id::uuid
+            ORDER BY psi.position
+            LIMIT 1
+        """), {"series_id": series_id})
+        row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Series or scenario not found")
+
+        try:
+            user_uuid = uuid_mod.UUID(user["user_id"])
+        except (ValueError, AttributeError):
+            user_uuid = uuid_mod.uuid5(uuid_mod.NAMESPACE_DNS, str(user["user_id"]))
+
+        await pg.execute(
+            pg_insert(UserModel)
+            .values(id=user_uuid, email=user.get("email") or f"{user_uuid}@unknown.internal", role=user.get("role", "rep"))
+            .on_conflict_do_nothing(index_elements=["id"])
+        )
+
+        session_id = uuid_mod.uuid4()
+        pg.add(SessionModel(
+            id=session_id,
+            user_id=user_uuid,
+            scenario_id=uuid_mod.UUID(row.scenario_id),
+            preset="full_practice",
+            status="in_progress",
+            arc_stage_reached=1,
+        ))
+        await pg.commit()
+
+    return {"session_id": str(session_id), "scenario_id": row.scenario_id, "persona_id": row.persona_id}
+
+
 @app.get("/api/completions")
 async def get_completions(user: dict = Depends(get_current_user)):
     """Return rep's session completion + cert status."""
