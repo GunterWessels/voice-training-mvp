@@ -10,6 +10,7 @@ const STATE = {
 function RoastCard({ roastData, error }) {
   const [cardState, setCardState] = useState(STATE.LOADING);
   const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
 
   useEffect(() => {
     if (error) {
@@ -30,6 +31,7 @@ function RoastCard({ roastData, error }) {
         }
         const blob = new Blob([bytes], { type: 'audio/mpeg' });
         const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
         audioRef.current = new Audio(url);
         audioRef.current.play().catch((e) => {
           console.warn('Audio autoplay blocked:', e);
@@ -43,6 +45,10 @@ function RoastCard({ roastData, error }) {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
+      }
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
       }
     };
   }, [roastData, error]);
@@ -59,6 +65,8 @@ function RoastCard({ roastData, error }) {
     navigator.clipboard.writeText(text).then(() => {
       setCardState(STATE.SHARED);
       setTimeout(() => setCardState(STATE.PLAYING), 2000);
+    }).catch(() => {
+      console.warn('Clipboard write failed');
     });
   };
 
@@ -104,14 +112,12 @@ function RoastCard({ roastData, error }) {
         <div style={styles.audioBar}>▶ Playing...</div>
       )}
 
-      {roastData.audio_base64 && (
-        <button
-          style={styles.shareButton}
-          onClick={handleShare}
-        >
-          {cardState === STATE.SHARED ? '✅ Copied!' : '📋 Share This Shame'}
-        </button>
-      )}
+      <button
+        style={styles.shareButton}
+        onClick={handleShare}
+      >
+        {cardState === STATE.SHARED ? '✅ Copied!' : '📋 Share This Shame'}
+      </button>
     </div>
   );
 }
