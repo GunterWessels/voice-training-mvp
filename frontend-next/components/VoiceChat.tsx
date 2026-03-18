@@ -5,6 +5,27 @@ import CofGates from './CofGates'
 import { useFillerAudio } from './FillerAudio'
 import OnboardingOverlay from './OnboardingOverlay'
 
+// Web Speech API — not included in TypeScript's default DOM lib
+interface ISpeechRecognitionEvent extends Event {
+  results: { [i: number]: { [j: number]: { transcript: string } } }
+}
+interface ISpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  onstart: (() => void) | null
+  onresult: ((event: ISpeechRecognitionEvent) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+  start(): void
+  stop(): void
+}
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => ISpeechRecognition
+    webkitSpeechRecognition?: new () => ISpeechRecognition
+  }
+}
+
 type AudioState = 'idle' | 'listening' | 'processing' | 'speaking'
 
 interface CofGateState { clinical: boolean; operational: boolean; financial: boolean }
@@ -19,7 +40,7 @@ interface Props {
 
 export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   const wsRef = useRef<WebSocket | null>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<ISpeechRecognition | null>(null)
   const [audioState, setAudioState] = useState<AudioState>('idle')
   const [messages, setMessages] = useState<Message[]>([])
   const [arcStage, setArcStage] = useState(0)
@@ -85,9 +106,9 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   }, [])
 
   const startListening = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition: typeof SpeechRecognition }).webkitSpeechRecognition
-    if (!SpeechRecognition) return
-    const recognition = new SpeechRecognition()
+    const SpeechRecognitionAPI = window.SpeechRecognition ?? window.webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) return
+    const recognition = new SpeechRecognitionAPI()
     recognitionRef.current = recognition
     recognition.continuous = false
     recognition.interimResults = false
@@ -95,7 +116,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
       setAudioState('listening')
       filler.startTimer()
     }
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: ISpeechRecognitionEvent) => {
       const text = event.results[0][0].transcript
       filler.cancel()
       sendText(text)
