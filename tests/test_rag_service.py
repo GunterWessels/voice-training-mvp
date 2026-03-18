@@ -4,9 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 @pytest.mark.asyncio
 async def test_retrieve_returns_list():
     from backend.rag_service import retrieve
+    # execute() is async; CursorResult.fetchall() is synchronous — use MagicMock for cursor
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = []
     mock_db = AsyncMock()
-    mock_db.execute.return_value.fetchall.return_value = []
-    with patch("backend.rag_service.embed_query", return_value=[0.1]*1536):
+    mock_db.execute = AsyncMock(return_value=mock_cursor)
+    with patch("backend.rag_service.embed_query", new_callable=AsyncMock, return_value=[0.1]*1536):
         results = await retrieve("test query", scenario_id="abc", domain="product", db=mock_db)
     assert isinstance(results, list)
 

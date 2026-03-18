@@ -37,7 +37,7 @@ async def retrieve(
         LIMIT :top_k
     """), {"embedding": embedding_literal, "scenario_id": scenario_id,
            "domain": domain, "top_k": top_k})
-    rows = await result.fetchall()
+    rows = result.fetchall()  # SQLAlchemy CursorResult.fetchall() is synchronous after await execute()
     return [{"id": r.id, "content": r.content, "section": r.section,
              "approved_claim": r.approved_claim, "similarity": r.similarity}
             for r in rows]

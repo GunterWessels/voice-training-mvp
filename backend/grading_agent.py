@@ -3,6 +3,7 @@
 import json
 from typing import Dict, Any, List
 import anthropic
+from anthropic.types import TextBlock
 
 # AsyncAnthropic required — grade_session is called from async WebSocket handler
 _client = anthropic.AsyncAnthropic()
@@ -63,7 +64,11 @@ async def grade_session(
         temperature=0.3,
         messages=[{"role": "user", "content": prompt}]
     )
-    result = json.loads(response.content[0].text)
+    block = response.content[0]
+    if isinstance(block, TextBlock):
+        result = json.loads(block.text)
+    else:
+        raise ValueError("Grading agent returned unexpected non-text response block")
     result["overall_score"] = compute_overall_score(result["dimensions"], grading_criteria)
     result["debrief_audio"] = grading_criteria.get("debrief_instructions", {}).get("audio", True)
     return result

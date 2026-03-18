@@ -2,6 +2,7 @@
 """Per-turn 2-layer argument evaluation. Layer 1 deterministic; Layer 2 LLM fallback."""
 from typing import Dict, Any, List, Tuple, Optional
 import anthropic
+from anthropic.types import TextBlock
 
 # AsyncAnthropic required — evaluate_turn is called from async WebSocket handler
 _client = anthropic.AsyncAnthropic()
@@ -92,5 +93,10 @@ Respond with exactly one word: strong, mixed, or weak"""
         temperature=0.1,
         messages=[{"role": "user", "content": prompt}]
     )
-    result = msg.content[0].text.strip().lower()
+    block = msg.content[0]
+    if isinstance(block, TextBlock):
+        raw = block.text
+    else:
+        raw = ""
+    result = raw.strip().lower()
     return result if result in ("strong", "mixed", "weak") else "mixed"
