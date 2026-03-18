@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import RoastCard from './RoastCard';
 
 function EnhancedVoiceChat({ session, onEndSession }) {
   const [messages, setMessages] = useState(session.messages || []);
@@ -22,6 +23,9 @@ function EnhancedVoiceChat({ session, onEndSession }) {
   const [coaching, setCoaching] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [roastData, setRoastData] = useState(null);
+  const [roastError, setRoastError] = useState(false);
+  const [roastLoading, setRoastLoading] = useState(false);
   
   const wsRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -272,12 +276,28 @@ function EnhancedVoiceChat({ session, onEndSession }) {
   };
 
   const endSession = async () => {
+    // Score the session (best effort — don't block on failure)
     try {
       await axios.post(`/sessions/${session.session_id}/score`);
     } catch (error) {
       console.error('Error scoring session:', error);
     }
-    onEndSession();
+
+    // Trigger roast generation
+    setRoastLoading(true);
+    try {
+      const response = await axios.post(
+        `/sessions/${session.session_id}/roast`,
+        {},
+        { timeout: 20000 }  // 20s client-side timeout (backend is 15s)
+      );
+      setRoastData(response.data);
+    } catch (error) {
+      console.error('Roast generation failed:', error);
+      setRoastError(true);
+    } finally {
+      setRoastLoading(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -505,6 +525,38 @@ function EnhancedVoiceChat({ session, onEndSession }) {
           </div>
         )}
       </div>
+
+      {(roastLoading || roastData || roastError) && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <RoastCard
+            roastData={roastLoading ? null : roastData}
+            error={roastError}
+          />
+          {!roastLoading && (
+            <button
+              onClick={onEndSession}
+              style={{
+                marginTop: 16,
+                background: 'transparent',
+                color: '#aaa',
+                border: '1px solid #555',
+                borderRadius: 8,
+                padding: '8px 20px',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              Close
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
