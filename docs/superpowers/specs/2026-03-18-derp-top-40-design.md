@@ -194,4 +194,6 @@ Session ends (WebSocket onclose)
 | `backend/roast_service.py` | New |
 | `backend/main.py` | Add `POST /sessions/{id}/roast` endpoint |
 | `frontend/src/components/RoastCard.js` | New |
-| `frontend/src/App.js` | Wire `onclose` → roast call → RoastCard render |
+| `frontend/src/components/EnhancedVoiceChat.js` | Wire `endSession` button → roast call → RoastCard render |
+
+**Note on trigger:** The WebSocket `onclose` event is not the trigger. It fires on network drops and connection errors as well as intentional session endings. The "End Session" button (`endSession` function in `EnhancedVoiceChat.js`) is the correct and intentional trigger — it represents the user's deliberate choice to end the session.
