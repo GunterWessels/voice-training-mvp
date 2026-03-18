@@ -1,0 +1,1 @@
+{"id":"fixture_010","turns":[{"speaker":"user","text":"What financial risk does a high re-admission rate create for your hospital's budget?"}],"expected":{"cof_clinical":true,"cof_operational":false,"cof_financial":true}}

@@ -1,0 +1,1 @@
+{"id":"fixture_006","turns":[{"speaker":"ai","text":"Our patients have had excellent outcomes."},{"speaker":"user","text":"What is your budget cycle?"}],"expected":{"cof_clinical":false,"cof_operational":false,"cof_financial":true}}

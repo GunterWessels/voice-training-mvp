@@ -1,0 +1,1 @@
+{"id":"fixture_009","turns":[{"speaker":"user","text":"What is the cost per procedure when you factor in OR utilization rates?"},{"speaker":"user","text":"How does case volume affect your revenue margin?"}],"expected":{"cof_clinical":false,"cof_operational":true,"cof_financial":true}}
