@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import AdminUserTable from '../components/AdminUserTable'
+import AdminUploadFlow from '../components/AdminUploadFlow'
 
 const mockUsers = [
   { id: '1', email: 'rep@bsci.com', first_name: 'Sam', last_name: 'Lee', role: 'rep', cohort_id: null },
@@ -62,5 +63,12 @@ describe('AdminUserTable', () => {
     fireEvent.click(screen.getByRole('button', { name: /delete/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
     expect(onDelete).toHaveBeenCalledWith('1')
+  })
+})
+
+describe('AdminUploadFlow', () => {
+  it('renders Upload List button', () => {
+    render(<AdminUploadFlow authHeader={{}} onImportComplete={jest.fn()} />)
+    expect(screen.getByRole('button', { name: /upload list/i })).toBeInTheDocument()
   })
 })
