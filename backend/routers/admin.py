@@ -225,7 +225,7 @@ async def parse_upload(file: UploadFile = File(...), _: dict = Depends(get_admin
     else:
         headers, rows = _parse_csv_bytes(content)
     detected = _detect_columns(headers)
-    return {"headers": headers, "detected": detected, "preview": rows[:5], "total_rows": len(rows)}
+    return {"headers": headers, "detected": detected, "preview": rows[:5], "all_rows": rows[:500], "total_rows": len(rows)}
 
 
 @router.post("/users/bulk-import", status_code=201)

@@ -6,6 +6,7 @@ interface ParseResult {
   headers: string[]
   detected: Record<string, string>
   preview: Record<string, string>[]
+  all_rows: Record<string, string>[]
   total_rows: number
 }
 
@@ -104,8 +105,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
     setError(null)
 
     try {
-      // Build rows from preview using mapping
-      const rows = parseResult.preview.map(row => {
+      // Build rows from all_rows using mapping
+      const rows = parseResult.all_rows.map(row => {
         const out: Record<string, string> = {}
         for (const [header, field] of Object.entries(mapping)) {
           if (field) {
@@ -143,6 +144,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
     }
   }
 
+  const emailMapped = Object.values(mapping).includes('email')
+
   function handleDone() {
     if (result) {
       onImportComplete(result)
@@ -161,11 +164,16 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg space-y-4">
+          <div
+          className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg space-y-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upload-modal-title"
+        >
             {/* STEP 1: IDLE - File picker */}
             {step === 'idle' && (
               <>
-                <h2 className="text-lg font-semibold text-[#1a202c]">Upload User List</h2>
+                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#1a202c]">Upload User List</h2>
                 <p className="text-sm text-[#718096]">
                   Upload a CSV, Excel, or TSV file with email and name columns.
                 </p>
@@ -186,12 +194,14 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
 
                 <div className="flex gap-3 justify-end pt-4">
                   <button
+                    type="button"
                     onClick={closeModal}
                     className="border border-[#0073CF] text-[#0073CF] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#f0f7ff]"
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={loading}
                     className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8] disabled:opacity-50"
@@ -205,7 +215,7 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
             {/* STEP 2: MAPPING - Column mapping + preview */}
             {step === 'mapping' && parseResult && (
               <>
-                <h2 className="text-lg font-semibold text-[#1a202c]">Map Columns</h2>
+                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#1a202c]">Map Columns</h2>
                 <p className="text-sm text-[#718096]">
                   Assign columns from your file. Total rows: {parseResult.total_rows}
                 </p>
@@ -280,16 +290,22 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                   <span className="text-sm text-[#1a202c]">Send magic link invites immediately</span>
                 </label>
 
+                {!emailMapped && (
+                  <p className="text-[12px] text-[#e53e3e]">Map at least one column to Email before importing.</p>
+                )}
+
                 <div className="flex gap-3 justify-end pt-4">
                   <button
+                    type="button"
                     onClick={() => setStep('idle')}
                     className="border border-[#0073CF] text-[#0073CF] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#f0f7ff]"
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={handleImport}
-                    disabled={loading}
+                    disabled={loading || !emailMapped}
                     className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8] disabled:opacity-50"
                   >
                     {loading ? 'Importing…' : `Import ${parseResult.total_rows} Users`}
@@ -301,7 +317,7 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
             {/* STEP 3: DONE - Results */}
             {step === 'done' && result && (
               <>
-                <h2 className="text-lg font-semibold text-[#1a202c]">Import Complete</h2>
+                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#1a202c]">Import Complete</h2>
 
                 <div className="space-y-3">
                   <div className="bg-[#e6f4ea] rounded-lg p-3">
@@ -319,6 +335,7 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
 
                 <div className="flex gap-3 justify-end pt-4">
                   <button
+                    type="button"
                     onClick={handleDone}
                     className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8]"
                   >
