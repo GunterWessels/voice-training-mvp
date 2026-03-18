@@ -91,7 +91,9 @@ export default function AdminPage() {
     })
   }, [activeTab])
 
-  const authHeader = authToken ? { Authorization: `Bearer ${authToken}` } : {}
+  const authHeader: Record<string, string> = authToken
+    ? { Authorization: `Bearer ${authToken}` }
+    : {}
 
   // --- User CRUD handlers ---
   async function handleAdd(form: { email: string; first_name: string; last_name: string; role: string }) {
