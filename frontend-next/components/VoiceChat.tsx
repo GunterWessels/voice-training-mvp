@@ -48,9 +48,12 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   const [personaId, setPersonaId] = useState<string>('')
   const [scenarioName, setScenarioName] = useState('')
   const [sessionEnded, setSessionEnded] = useState(false)
+  const sessionEndedRef = useRef(false)  // stable ref for onclose closure
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const filler = useFillerAudio({ personaId: personaId || 'default' })
+  const fillerRef = useRef(filler)
+  fillerRef.current = filler  // keep ref current on every render
 
   // Connect to WebSocket
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
       }
 
       if (msg.type === 'ai_message') {
-        filler.cancel()
+        fillerRef.current.cancel()
         setMessages(prev => [...prev, { role: 'ai', text: msg.text as string }])
         if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
         if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
@@ -83,7 +86,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
           setAudioState('idle')
         }
 
-        if (msg.session_end) setSessionEnded(true)
+        if (msg.session_end) { sessionEndedRef.current = true; setSessionEnded(true) }
       }
 
       if (msg.type === 'error') {
@@ -93,7 +96,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
     }
 
     ws.onerror = () => setError('Connection error. Please refresh.')
-    ws.onclose = () => { if (!sessionEnded) setAudioState('idle') }
+    ws.onclose = () => { if (!sessionEndedRef.current) setAudioState('idle') }
 
     return () => ws.close()
   }, [sessionId, token, apiBase]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -126,6 +129,8 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
     recognition.start()
   }, [audioState, filler, sendText])
 
+  const dismissOnboarding = useCallback(() => setShowOnboarding(false), [])
+
   if (sessionEnded) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-6">
@@ -138,7 +143,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {showOnboarding && <OnboardingOverlay onDismiss={() => setShowOnboarding(false)} />}
+      {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} />}
 
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 space-y-1">
