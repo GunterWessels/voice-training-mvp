@@ -68,3 +68,6 @@ server.log
 tmp/
 temp/
 .claude-worklist.md
+
+# Git worktrees
+.worktrees/
