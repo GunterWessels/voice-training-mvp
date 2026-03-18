@@ -12,11 +12,6 @@ COST_TABLE = {
     ("anthropic", "claude-3-haiku-20240307"): {"input": 0.25 / 1_000_000, "output": 1.25 / 1_000_000},
 }
 
-_DEFAULT_BUDGET_CAPS = {
-    "quick_drill":   0.40,
-    "full_practice": 1.00,
-    "cert_run":      2.00,
-}
 
 def compute_cost(provider: str, model: Optional[str], tokens_in: int = 0,
                  tokens_out: int = 0, characters: int = 0) -> float:

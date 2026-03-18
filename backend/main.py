@@ -493,6 +493,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
     """WebSocket endpoint for real-time conversation"""
 
     # JWT verification — required when token is supplied; legacy path skips if empty
+    ws_user = None
     if token:
         ws_user = await verify_ws_token(token)
         if not ws_user:
