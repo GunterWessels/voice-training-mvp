@@ -489,21 +489,56 @@ Estimated cost: ~2,000 tokens input + ~500 tokens output = ~$0.003 per session. 
 
 ---
 
-## 9. Content File Management (Admin Dashboard)
+## 9. Knowledge Base Manager (Admin Dashboard)
 
-The admin dashboard includes a **Knowledge Base** section showing:
+The admin dashboard includes a **Knowledge Base** section with two tabs per product.
 
-| Column | Value |
+### 9.1 Tab 1 — Upload Doc
+
+Two entry paths:
+
+**Path A — Document upload:**
+- Drag/drop zone accepts PDF or DOCX (IFU, clinical evidence, sales aid, coverage policy)
+- System extracts text via `pdfplumber`, auto-detects section headers, proposes chunks
+- Admin reviews proposed chunks before committing — required step before ingestion
+
+**Path B — Manual chunk entry form:**
+- Domain picker: `product | clinical | cof | objection | compliance | stakeholder`
+- Section label (free text)
+- FDA-cleared / approved claim checkbox — when checked, chunk is flagged `approved_claim: true` and will be retrieved verbatim only
+- Keywords (comma-separated)
+- Content textarea (150–400 words)
+- "Add to Knowledge Base + Ingest" button — appends chunk to `knowledge_base.yaml` and triggers embedding + pgvector insert in one action
+
+### 9.2 Tab 2 — Manage Chunks
+
+Table of all loaded chunks for the selected product:
+
+| Column | Notes |
 |--------|-------|
-| File | `content/tria_stents/knowledge_base.yaml` |
-| Product | Tria Ureteral Stents |
-| Chunks | 18 |
-| Domains covered | product (5), clinical (4), cof (3), objection (3), compliance (1), stakeholder (2) |
-| Approved claims | 3 |
-| Last ingested | timestamp |
-| Actions | Re-ingest / View chunks / Download |
+| ID | e.g. `tria_c_001` |
+| Domain | Color-coded badge |
+| Section | e.g. `moa_percushield` |
+| Approved Claim | Gold flag if `true` |
+| Content preview | First 120 chars, truncated |
+| Actions | Edit (opens inline form) · Delete (removes from YAML + pgvector) |
 
-Files are editable directly in the repository. Admins add chunks by appending to the YAML source file, then trigger re-ingestion from the dashboard or CLI.
+Footer: **Re-ingest All** button — re-embeds all chunks for the product (use after batch YAML edits via CLI).
+
+Header shows: product name, total chunk count, domain breakdown, approved claim count, last ingested timestamp.
+
+### 9.3 Backend Endpoints Required
+
+```
+POST /admin/knowledge-base/{product_id}/upload    # upload PDF/DOCX, returns proposed chunks
+POST /admin/knowledge-base/{product_id}/chunks    # add single chunk, embed, store
+PUT  /admin/knowledge-base/{product_id}/chunks/{chunk_id}  # edit chunk content/metadata
+DELETE /admin/knowledge-base/{product_id}/chunks/{chunk_id}  # remove from YAML + pgvector
+POST /admin/knowledge-base/{product_id}/reingest  # re-embed all chunks for product
+GET  /admin/knowledge-base/{product_id}/chunks    # list all chunks with metadata
+```
+
+All endpoints: `admin` role only. JWT required.
 
 ---
 
