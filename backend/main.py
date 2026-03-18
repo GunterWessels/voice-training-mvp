@@ -556,7 +556,7 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
             SELECT s.id::text AS scenario_id, s.persona_id
             FROM practice_series_items psi
             JOIN scenarios s ON s.id = psi.scenario_id
-            WHERE psi.series_id = :series_id::uuid
+            WHERE psi.series_id = CAST(:series_id AS uuid)
             ORDER BY psi.position
             LIMIT 1
         """), {"series_id": series_id})
