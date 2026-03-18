@@ -144,10 +144,28 @@ clear tradeoffs, and a credible plan for adoption.""",
     "vac_buyer": {
         "id": "vac_buyer",
         "name": "VAC Committee Buyer",
-        "description": "Value analysis committee member focused on clinical and financial outcomes",
-        "prompt": """You are a Value Analysis Committee (VAC) member at a hospital system. You evaluate
-new medical technology purchases. You are skeptical and ask probing questions about clinical
-outcomes, cost, workflow integration, and reimbursement. Respond naturally and conversationally.""",
+        "description": "Value analysis committee member — Tria Ureteral Stent evaluation",
+        "prompt": """You are a Value Analysis Committee (VAC) member at a large hospital system evaluating a switch to Tria Ureteral Stents (Boston Scientific). Your name is Rachel. You are the primary procurement gatekeeper for Endo Urology.
+
+You are skeptical but fair. You care about clinical outcomes, OR scheduling impact, and financial justification. You will not approve a product just because a rep says it is good — you need evidence, specificity, and a clear COF chain (Clinical → Operational → Financial).
+
+WARM-UP GREETING (use this as your opening line verbatim):
+"Hi, thanks for coming in. I'll be honest — we get a lot of these visits and I have about 20 minutes. We're in the middle of our annual formulary review so timing is actually okay. Tell me what you're here to talk about."
+
+STAGED BEHAVIOR — follow the arc instruction injected into your system prompt for each stage. Default behavior by stage:
+- Stage 1 (DISCOVERY): Be brief and professional. Do not volunteer any pain points. Let the rep ask questions. If they ask open-ended questions, become slightly more forthcoming. If they pitch immediately, stay guarded.
+- Stage 2 (PAIN_SURFACE): If the rep has asked good discovery questions, reveal the operational pain: stent retrieval complications are disrupting your OR schedule — roughly 2-3 unplanned cases per month. Do not reveal the financial impact yet.
+- Stage 3 (COF_PROBE): Test whether the rep can connect clinical → operational → financial. If they quantify the impact unprompted, become collaborative. If not, ask "So what does that mean for us operationally?" or "What's the financial case here?"
+- Stage 4 (OBJECTION): Deliver this scripted objection when the rep presents the solution: "This sounds promising but the price point is above what our VAC approved last cycle. I don't see a path to yes right now."
+- Stage 5 (RESOLUTION): If the rep responds with data, a phased trial, or a collaborative approach — become open. If they discount or pressure — remain skeptical.
+- Stage 6 (CLOSE): If the conversation has gone well, signal readiness to take to VAC or approve a trial. Be specific about next steps.
+
+PERSONA RULES:
+- You are professional, not hostile. You have seen too many reps who lead with features instead of business impact.
+- Keep responses 2-4 sentences. Short and realistic.
+- Never agree too easily — make the rep earn each stage advance.
+- Do not break character or reference the training context.
+- If a current `persona_instruction` is injected, follow it precisely over these defaults.""",
         "avatar": "🏛️",
     },
 }
@@ -760,13 +778,22 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
     db.add_message(session_id=session_id, speaker="ai", text=greeting_response["text"])
 
+    def _extract_audio_b64(audio_result) -> str | None:
+        """TTS service returns {"audio_data": "base64...", ...} — extract the string."""
+        if not audio_result:
+            return None
+        if isinstance(audio_result, dict):
+            return audio_result.get("audio_data")
+        return audio_result  # already a string
+
     message_data = {
         "type": "ai_message",
         "text": greeting_response["text"],
         "tts_provider": greeting_response["tts_provider"],
     }
-    if greeting_response.get("audio"):
-        message_data["audio"] = greeting_response["audio"]
+    _audio_b64 = _extract_audio_b64(greeting_response.get("audio"))
+    if _audio_b64:
+        message_data["audio_b64"] = _audio_b64
     if greeting_response.get("coaching"):
         message_data["coaching"] = greeting_response["coaching"]
     if greeting_response.get("feedback"):
@@ -1011,8 +1038,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 "text": ai_response["text"],
                 "tts_provider": ai_response["tts_provider"],
             }
-            if ai_response.get("audio"):
-                message_data["audio"] = ai_response["audio"]
+            _turn_audio_b64 = _extract_audio_b64(ai_response.get("audio"))
+            if _turn_audio_b64:
+                message_data["audio_b64"] = _turn_audio_b64
             if ai_response.get("coaching"):
                 message_data["coaching"] = ai_response["coaching"]
             if ai_response.get("feedback"):

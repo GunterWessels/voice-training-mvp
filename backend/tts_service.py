@@ -48,20 +48,21 @@ class TTSService:
         
         # Map personas to ElevenLabs voice IDs
         voice_map = {
-            "cfo": "21m00Tcm4TlvDq8ikWAM",  # Rachel - Professional female voice
-            "clinical_director": "AZnzlk1XvdvUeBnXmlld",  # Domi - Warm professional voice
-            "it_director": "EXAVITQu4vr4xnSDxMaL",  # Bella - Clear technical voice
-            "ceo": "21m00Tcm4TlvDq8ikWAM",  # Executive tone (fallback to Rachel unless customized)
+            "vac_buyer": "21m00Tcm4TlvDq8ikWAM",  # Rachel - VAC Buyer persona
+            "cfo": "21m00Tcm4TlvDq8ikWAM",
+            "clinical_director": "AZnzlk1XvdvUeBnXmlld",  # Domi
+            "it_director": "EXAVITQu4vr4xnSDxMaL",  # Bella
+            "ceo": "21m00Tcm4TlvDq8ikWAM",
             "default": "21m00Tcm4TlvDq8ikWAM",
         }
-        
+
         voice_id = voice_map.get(persona_id, voice_map["default"])
-        
+
         # Default voice settings for natural conversation
         default_settings = {
-            "stability": 0.5,
-            "similarity_boost": 0.5,
-            "style": 0.0,
+            "stability": 0.55,
+            "similarity_boost": 0.6,
+            "style": 0.1,
             "use_speaker_boost": True
         }
         
