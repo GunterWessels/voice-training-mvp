@@ -1,4 +1,5 @@
 import os
+import uuid
 import logging
 from typing import Optional
 from backend.db import AsyncSessionLocal
@@ -11,10 +12,10 @@ COST_TABLE = {
     ("anthropic", "claude-3-haiku-20240307"): {"input": 0.25 / 1_000_000, "output": 1.25 / 1_000_000},
 }
 
-BUDGET_CAPS = {
-    "quick_drill":   float(os.environ.get("TOKEN_BUDGET_QUICK_DRILL", "0.40")),
-    "full_practice": float(os.environ.get("TOKEN_BUDGET_FULL_PRACTICE", "1.00")),
-    "cert_run":      float(os.environ.get("TOKEN_BUDGET_CERT_RUN", "2.00")),
+_DEFAULT_BUDGET_CAPS = {
+    "quick_drill":   0.40,
+    "full_practice": 1.00,
+    "cert_run":      2.00,
 }
 
 def compute_cost(provider: str, model: Optional[str], tokens_in: int = 0,
@@ -36,8 +37,11 @@ async def write_event(session_id: str, user_id: str, cohort_id: Optional[str],
     try:
         async with AsyncSessionLocal() as db:
             event = MeteringEvent(
-                session_id=session_id, user_id=user_id, cohort_id=cohort_id,
-                division_id=division_id, provider=provider, model=model,
+                session_id=uuid.UUID(session_id),
+                user_id=uuid.UUID(user_id) if user_id else None,
+                cohort_id=uuid.UUID(cohort_id) if cohort_id else None,
+                division_id=uuid.UUID(division_id) if division_id else None,
+                provider=provider, model=model,
                 call_type=call_type, tokens_in=tokens_in, tokens_out=tokens_out,
                 cost_usd=cost,
             )
@@ -62,4 +66,9 @@ async def get_session_cost(session_id: str) -> float:
         return float(result.scalar() or 0)
 
 def is_over_budget(current_cost: float, preset: str) -> bool:
-    return current_cost >= BUDGET_CAPS.get(preset, BUDGET_CAPS["full_practice"])
+    caps = {
+        "quick_drill":   float(os.environ.get("TOKEN_BUDGET_QUICK_DRILL", "0.40")),
+        "full_practice": float(os.environ.get("TOKEN_BUDGET_FULL_PRACTICE", "1.00")),
+        "cert_run":      float(os.environ.get("TOKEN_BUDGET_CERT_RUN", "2.00")),
+    }
+    return current_cost >= caps.get(preset, caps["full_practice"])

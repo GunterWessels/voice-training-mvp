@@ -684,6 +684,27 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
             db.add_message(session_id=session_id, speaker="ai", text=ai_response["text"])
 
+            # Metering: fire-and-forget cost event for this AI turn
+            if pg_session:
+                try:
+                    import asyncio as _asyncio
+                    from metering import write_event as _write_event
+                    ws_user_id = ws_user.get("user_id") if token and ws_user else None
+                    if ws_user_id:
+                        _asyncio.create_task(_write_event(
+                            session_id=session_id,
+                            user_id=ws_user_id,
+                            cohort_id=None,
+                            division_id=None,
+                            provider=ai_service._last_provider,
+                            model=ai_service._last_model,
+                            call_type="persona_response",
+                            tokens_in=ai_service._last_tokens_in,
+                            tokens_out=ai_service._last_tokens_out,
+                        ))
+                except Exception as _meter_err:
+                    logging.warning("metering task dispatch failed: %s", _meter_err)
+
             message_data = {
                 "type": "ai_message",
                 "text": ai_response["text"],
