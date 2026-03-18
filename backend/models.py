@@ -2,9 +2,10 @@ import uuid
 from datetime import datetime, date
 from typing import Optional
 from decimal import Decimal
-from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInteger, Date
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInteger, Date, func
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
+from pgvector.sqlalchemy import Vector
 from backend.db import Base
 
 
@@ -55,6 +56,10 @@ class Scenario(Base):
     celebration_triggers: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     cartridge_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
+    cof_map: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    argument_rubrics: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    grading_criteria: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    methodology: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
@@ -99,6 +104,7 @@ class Completion(Base):
     cert_issued: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     cert_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     lms_export_ready: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
+    dimension_scores: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
 
@@ -138,3 +144,22 @@ class PracticeSeriesItem(Base):
     series_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     scenario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scenario_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    product_id: Mapped[str] = mapped_column(String, nullable=False)
+    domain: Mapped[str] = mapped_column(String, nullable=False)
+    section: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    source_doc: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    page: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    approved_claim: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    keywords: Mapped[Optional[list]] = mapped_column(ARRAY(String), nullable=True)
+    embedding: Mapped[Optional[list]] = mapped_column(Vector(1536), nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
