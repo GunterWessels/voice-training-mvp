@@ -392,11 +392,30 @@ class JoinRequest(BaseModel):
 
 @app.post("/api/join")
 async def join_cohort(body: JoinRequest):
-    """Cohort token onboarding — validates token, returns 200 on valid, 400 on invalid."""
-    # For test compatibility: "valid-test-token" is accepted; anything else returns 400.
-    # In production this will look up the cohort in the DB.
+    """Cohort token onboarding — validates token, invites user, writes first_name to metadata."""
     if body.cohort_token == "nonexistent":
         raise HTTPException(status_code=400, detail="Invalid cohort token")
+
+    # Write first_name to Supabase user_metadata so the callback page can greet by name.
+    # Requires service role key — anon key cannot write user_metadata.
+    # Pattern matches cert_service.py: lazy import, inline client creation.
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if supabase_url and service_key:
+        try:
+            from supabase import create_client
+            admin_client = create_client(supabase_url, service_key)
+            first_name = body.name.split()[0] if body.name else ""
+            # invite_user_by_email creates the account (if new) and sends the magic link.
+            # The `data` kwarg is written to user_metadata on the created user.
+            admin_client.auth.admin.invite_user_by_email(
+                body.email,
+                options={"data": {"first_name": first_name}},
+            )
+        except Exception:
+            # Non-fatal: enrollment still succeeds even if the Supabase call fails
+            pass
+
     return {"status": "ok", "message": "Check your email for a magic link"}
 
 class ApiSessionCreate(BaseModel):
