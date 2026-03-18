@@ -2,9 +2,9 @@ import csv
 import io
 import uuid
 import os
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from pydantic import BaseModel
+from typing import Optional, List, Literal
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from pydantic import BaseModel, validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
@@ -46,15 +46,15 @@ class UserCreate(BaseModel):
     email: str
     first_name: str
     last_name: str = ""
-    role: str = "rep"
-    cohort_id: Optional[str] = None
+    role: Literal["rep", "manager", "admin"] = "rep"
+    cohort_id: Optional[uuid.UUID] = None
 
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    role: Optional[str] = None
-    cohort_id: Optional[str] = None
+    role: Optional[Literal["rep", "manager", "admin"]] = None
+    cohort_id: Optional[uuid.UUID] = None
 
 
 class UserOut(BaseModel):
@@ -75,6 +75,17 @@ class UserOut(BaseModel):
             role=u.role,
             cohort_id=str(u.cohort_id) if u.cohort_id else None,
         )
+
+
+class BulkImportBody(BaseModel):
+    rows: List[dict]
+    send_invites: bool = True
+
+    @validator('rows')
+    def max_rows(cls, v):
+        if len(v) > 500:
+            raise ValueError("Maximum 500 rows per import")
+        return v
 
 
 # Column detection heuristics
@@ -129,9 +140,15 @@ def _parse_excel_bytes(content: bytes):
 # Routes
 
 @router.get("/users", response_model=List[UserOut])
-async def list_users(_: dict = Depends(get_admin_user)):
+async def list_users(
+    limit: int = Query(default=100, le=500),
+    offset: int = Query(default=0, ge=0),
+    _: dict = Depends(get_admin_user),
+):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User).order_by(User.created_at.desc()))
+        result = await session.execute(
+            select(User).order_by(User.created_at.desc()).limit(limit).offset(offset)
+        )
         return [UserOut.from_orm(u) for u in result.scalars().all()]
 
 
@@ -144,7 +161,7 @@ async def create_user(body: UserCreate, _: dict = Depends(get_admin_user)):
             first_name=body.first_name,
             last_name=body.last_name,
             role=body.role,
-            cohort_id=uuid.UUID(body.cohort_id) if body.cohort_id else None,
+            cohort_id=body.cohort_id,
         )
         session.add(user)
         try:
@@ -158,9 +175,9 @@ async def create_user(body: UserCreate, _: dict = Depends(get_admin_user)):
 
 
 @router.put("/users/{user_id}", response_model=UserOut)
-async def update_user(user_id: str, body: UserUpdate, _: dict = Depends(get_admin_user)):
+async def update_user(user_id: uuid.UUID, body: UserUpdate, _: dict = Depends(get_admin_user)):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        result = await session.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -171,16 +188,16 @@ async def update_user(user_id: str, body: UserUpdate, _: dict = Depends(get_admi
         if body.role is not None:
             user.role = body.role
         if body.cohort_id is not None:
-            user.cohort_id = uuid.UUID(body.cohort_id) if body.cohort_id else None
+            user.cohort_id = body.cohort_id
         await session.commit()
         await session.refresh(user)
         return UserOut.from_orm(user)
 
 
 @router.delete("/users/{user_id}", status_code=204)
-async def delete_user(user_id: str, _: dict = Depends(get_admin_user)):
+async def delete_user(user_id: uuid.UUID, _: dict = Depends(get_admin_user)):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        result = await session.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -189,9 +206,9 @@ async def delete_user(user_id: str, _: dict = Depends(get_admin_user)):
 
 
 @router.post("/users/{user_id}/invite", status_code=200)
-async def resend_invite(user_id: str, _: dict = Depends(get_admin_user)):
+async def resend_invite(user_id: uuid.UUID, _: dict = Depends(get_admin_user)):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        result = await session.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -212,9 +229,9 @@ async def parse_upload(file: UploadFile = File(...), _: dict = Depends(get_admin
 
 
 @router.post("/users/bulk-import", status_code=201)
-async def bulk_import(body: dict, _: dict = Depends(get_admin_user)):
-    rows = body.get("rows", [])
-    send_invites = body.get("send_invites", True)
+async def bulk_import(body: BulkImportBody, _: dict = Depends(get_admin_user)):
+    rows = body.rows
+    send_invites = body.send_invites
     created, skipped, errors = 0, 0, []
 
     for row in rows:
