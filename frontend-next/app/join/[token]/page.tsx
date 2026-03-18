@@ -1,23 +1,36 @@
 'use client'
-import { useState } from 'react'
+import { useState, use } from 'react'
 
 interface Props {
-  params: { token: string }
+  params: Promise<{ token: string }>
 }
 
 export default function JoinPage({ params }: Props) {
+  const { token } = use(params)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault()
-    const res = await fetch('/api/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: params.token, name, email }),
-    })
-    if (res.ok) setSent(true)
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await fetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, name, email }),
+      })
+      if (res.ok) {
+        setSent(true)
+      } else {
+        setError('Enrollment failed. Check your token and try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (sent) return <div className="p-8 text-center">Check your email to complete enrollment.</div>
@@ -50,9 +63,14 @@ export default function JoinPage({ params }: Props) {
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
           />
         </div>
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
-          Join
+        <button
+          type="submit"
+          disabled={loading}
+          className={`w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {loading ? 'Joining...' : 'Join'}
         </button>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
       </form>
     </div>
   )

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 jest.mock('@/lib/supabase', () => ({
@@ -23,7 +23,9 @@ describe('Auth flows', () => {
 
   it('renders cohort join page with name input', async () => {
     const { default: JoinPage } = await import('../app/join/[token]/page')
-    render(<JoinPage params={{ token: 'test-token' }} />)
+    await act(async () => {
+      render(<JoinPage params={Promise.resolve({ token: 'test-token' })} />)
+    })
     expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
   })
 })

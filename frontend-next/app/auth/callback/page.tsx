@@ -3,9 +3,10 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
+const supabase = createClient()  // stable reference outside component
+
 export default function CallbackPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -14,7 +15,7 @@ export default function CallbackPage() {
       }
     })
     return () => subscription.unsubscribe()
-  }, [router, supabase.auth])
+  }, [router])
 
   return (
     <div className="min-h-screen flex items-center justify-center">

@@ -5,12 +5,18 @@ import { createClient } from '@/lib/supabase'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault()
-    await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}/auth/callback` } })
-    setSent(true)
+    setError(null)
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}/auth/callback` } })
+    if (error) {
+      setError(error.message)
+    } else {
+      setSent(true)
+    }
   }
 
   if (sent) return <div className="p-8 text-center">Check your email for a magic link.</div>
@@ -34,6 +40,7 @@ export default function LoginPage() {
         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
           Send Magic Link
         </button>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
       </form>
     </div>
   )
