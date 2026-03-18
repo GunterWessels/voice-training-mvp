@@ -671,6 +671,32 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                             "audio": None,
                             "session_end": True,
                         })
+                        # Issue cert if earned
+                        if arc_tracker:
+                            try:
+                                from cert_service import should_issue_cert, upload_and_email_cert
+                                import asyncio as _asyncio
+                                cof = arc_tracker.cof_flags
+                                if should_issue_cert(
+                                    cof["clinical"], cof["operational"], cof["financial"],
+                                    arc_tracker.current_stage, pg_session.preset or "full_practice"
+                                ) and ws_user:
+                                    completion_data = {
+                                        "completion_id": str(pg_session.id),
+                                        "user_id": ws_user.get("user_id", ""),
+                                        "rep_name": ws_user.get("email", ""),
+                                        "scenario_name": "Training Session",
+                                        "completed_at": __import__("datetime").date.today().isoformat(),
+                                        "score": arc_tracker.current_stage * 20,
+                                        "cof_clinical": cof["clinical"],
+                                        "cof_operational": cof["operational"],
+                                        "cof_financial": cof["financial"],
+                                    }
+                                    _asyncio.create_task(
+                                        upload_and_email_cert(completion_data, ws_user.get("email", ""))
+                                    )
+                            except Exception as _cert_err:
+                                logging.warning("cert dispatch failed: %s", _cert_err)
                         break
                 except Exception as _budget_err:
                     logging.warning("budget cap check failed: %s", _budget_err)
