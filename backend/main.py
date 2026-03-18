@@ -22,6 +22,7 @@ from database import Database
 from cartridge_service import CartridgeService, DealContext
 from auth import get_current_user, verify_ws_token
 from roast_service import RoastService
+from routers.knowledge_base import router as kb_router
 
 app = FastAPI(title="Voice Training Platform MVP")
 
@@ -187,6 +188,9 @@ def _scenario_summary(cartridge_id: Optional[str], scenario_id: Optional[str]) -
         "duration_minutes": s.get("duration_minutes"),
         "description": s.get("description"),
     }
+
+
+app.include_router(kb_router)
 
 
 @app.get("/")
