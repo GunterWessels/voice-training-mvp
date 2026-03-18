@@ -23,6 +23,7 @@ from cartridge_service import CartridgeService, DealContext
 from auth import get_current_user, verify_ws_token
 from roast_service import RoastService
 from routers.knowledge_base import router as kb_router
+from routers.admin import router as admin_router
 
 app = FastAPI(title="Voice Training Platform MVP")
 
@@ -191,6 +192,7 @@ def _scenario_summary(cartridge_id: Optional[str], scenario_id: Optional[str]) -
 
 
 app.include_router(kb_router)
+app.include_router(admin_router)
 
 
 @app.get("/")
@@ -553,6 +555,23 @@ async def get_admin_metrics(user: dict = Depends(get_current_user)):
         "flagged_sessions": [],
         "completion_rate_by_cohort": [],
     }
+
+
+@app.get("/api/auth/check")
+async def auth_check(user: dict = Depends(get_current_user)):
+    """Verify caller's email is in the users allowlist."""
+    from db import AsyncSessionLocal
+    from models import User as UserModel
+    from sqlalchemy import select as sa_select
+    import uuid as uuid_mod
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            sa_select(UserModel).where(UserModel.email == (user.get("email") or "").lower())
+        )
+        db_user = result.scalar_one_or_none()
+        if not db_user:
+            raise HTTPException(status_code=403, detail="Not on allowlist")
+        return {"allowed": True, "role": db_user.role}
 
 
 @app.post("/sessions/{session_id}/roast")
