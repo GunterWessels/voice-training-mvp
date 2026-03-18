@@ -1,0 +1,402 @@
+# Tria Ureteral Stent — RAG Knowledge Base
+# Product: Boston Scientific Tria Ureteral Stent Portfolio
+# Scenario: VAC Stakeholder — Tria Stents (Endo Urology)
+# Last updated: 2026-03-18
+# Source: "Building Tria Stent Sales Knowledge Base" (LiquidSMARTS™ synthesis)
+#
+# USAGE: Each chunk is a discrete retrieval unit. Add new chunks by copying the
+# template block at the bottom of this file. Ingest via:
+#   python3 scripts/ingest_docs.py --product tria_stents --file content/tria_stents/knowledge_base.yaml
+#
+# approved_claim: true  → FDA-cleared or IFU-sourced. Must be retrieved verbatim. Do not paraphrase.
+# domain: product | clinical | cof | compliance | objection | stakeholder
+# ─────────────────────────────────────────────────────────────────────────────
+
+product_id: tria_stents
+scenario_ids:
+  - vac_stakeholder_tria_stents
+
+chunks:
+
+  # ── PRODUCT ────────────────────────────────────────────────────────────────
+
+  - id: tria_p_001
+    domain: product
+    section: indications
+    approved_claim: true
+    source: "Tria IFU / BSC HCP Product Page"
+    keywords: [indication, intended use, urinary drainage, physician, endoscopic]
+    content: |
+      The Tria Ureteral Stents are intended solely for the facilitation of urinary
+      drainage from the kidney to the bladder. They are restricted for use by or
+      under the supervision of physicians trained in endoscopic urological procedures.
+      There are no known contraindications for this device, which allows for broad
+      clinical application across patient populations.
+
+  - id: tria_p_002
+    domain: product
+    section: indwell_limits
+    approved_claim: true
+    source: "Tria IFU"
+    keywords: [365 days, indwell limit, suture, retrieval line, 14 days, evaluation, 90 days]
+    content: |
+      Stent indwell limit: The stent itself should not exceed 365 days of indwelling
+      time. If the retrieval suture is left in place for subsequent removal, it must
+      not exceed 14 days of indwelling time to avoid encrustation of the suture
+      material. The physician is required to evaluate the stent periodically: initial
+      evaluation on or before 90 days after placement, with follow-up at least every
+      90 days thereafter if long-term use is indicated.
+
+  - id: tria_p_003
+    domain: product
+    section: variants_firm
+    approved_claim: false
+    source: "BSC Tria eBrochure / IFU"
+    keywords: [Tria Firm, 4.8F, 6.0F, 7.0F, 8.0F, sizes, lengths, braided suture, monofilament]
+    content: |
+      Tria Firm is offered in French sizes 4.8F, 6.0F, 7.0F, and 8.0F. The 4.8F
+      variant uses a braided suture; larger sizes use monofilament sutures. Lengths
+      range from 10–30 cm (4.8F) and 20–30 cm (larger sizes). Standard usage:
+      4.8F for pediatric patients, tight ureters, and strictures; 6.0–8.0F for
+      routine stone surgery and obstructive uropathy. Tria Firm maintains high
+      stiffness at room temperature (25°C) for navigational control and softens
+      42% at body temperature (37°C) for patient tolerability.
+
+  - id: tria_p_004
+    domain: product
+    section: variants_soft
+    approved_claim: false
+    source: "BSC Tria eBrochure / IFU"
+    keywords: [Tria Soft, 6.0F, 7.0F, 8.0F, pain-sensitive, post-URS, monofilament, 57 percent]
+    content: |
+      Tria Soft is offered in French sizes 6.0F, 7.0F, and 8.0F with monofilament
+      sutures and lengths of 20–30 cm. Optimized for post-ureteroscopy patients and
+      those with a known history of severe stent-related pain or prolonged indwell
+      requirements. Tria Soft achieves maximum thermal softening of 57% at body
+      temperature (37°C), compared to 42% for Tria Firm, providing superior patient
+      comfort. Both variants reach high stiffness at room temperature for placement
+      control.
+
+  - id: tria_p_005
+    domain: product
+    section: portfolio_context
+    approved_claim: false
+    source: "BSC Stent Portfolio Brochure"
+    keywords: [Polaris, Percuflex Plus, Contour, portfolio, differentiation, bladder loop, dual durometer]
+    content: |
+      Boston Scientific offers a stent portfolio where products are intentionally
+      "not created equal." Key alternatives and their differentiation from Tria:
+      Polaris Loop — 2.1F bladder loop design with 69% less bladder material, for
+      minimal bladder irritation. Polaris Ultra — dual-durometer co-extrusion (firm
+      kidney, soft bladder Nautilus coil). Percuflex Plus — maximum rigidity for
+      challenging anatomy. Contour/Contour VL — soft Percuflex with variable-length
+      coils for ureteral length accommodation. Tria stands as the premium offering:
+      the only stent combining Percuflex thermal dynamics with PercuShield
+      anti-adherence technology. Recommended when encrustation risk is the primary
+      clinical concern.
+
+  - id: tria_p_006
+    domain: product
+    section: adverse_events
+    approved_claim: true
+    source: "Tria IFU / BSC Safety Page"
+    keywords: [adverse events, infection, sepsis, perforation, hemorrhage, dysuria, hematuria, migration, occlusion]
+    content: |
+      Potential adverse events for Tria Ureteral Stents include: systemic infections
+      (sepsis, peritonitis), structural tissue damage (perforation, erosion, fistula,
+      hematoma, hemorrhage), mechanical failure (dislodgement, occlusion), and urinary
+      symptoms (dysuria, urgency, hematuria, frequency). Any retrograde or antegrade
+      positioned stent carries inherent risks including infection and physical trauma.
+      Transparent disclosure of these risks builds clinical credibility and is required
+      by the IFU.
+
+  # ── CLINICAL ───────────────────────────────────────────────────────────────
+
+  - id: tria_c_001
+    domain: clinical
+    section: moa_percushield
+    approved_claim: false
+    source: "BSC Salt Adhesion Study / BSC eBrochure"
+    keywords: [PercuShield, non-polar, copolymer, surface energy, encrustation, ionic, conditioning film, crystal nucleation]
+    content: |
+      PercuShield is an inert, non-polar copolymer with exceptionally low surface
+      energy. Urine is a supersaturated aqueous environment containing high
+      concentrations of calcium and magnesium ions. On traditional stents, surface
+      energy facilitates a "conditioning film" of host proteins and minerals that
+      scaffolds crystal nucleation. Because PercuShield is non-polar, it exhibits
+      reduced affinity for ionic species — disrupting the initial stages of
+      encrustation. The manufacturing process ensures surfaces are free from
+      micro-irregularities that serve as "trap sites" for mineral deposition. This
+      protection is continuous across the entire 365-day indwell period because the
+      technology is integrated into the material rather than a sacrificial surface
+      coating.
+
+  - id: tria_c_002
+    domain: clinical
+    section: moa_percuflex_thermal
+    approved_claim: false
+    source: "BSC Tria eBrochure / IFU"
+    keywords: [Percuflex, thermal, durometer, softening, 37 degrees, 25 degrees, stiffness, navigational, pushability]
+    content: |
+      Percuflex is engineered to demonstrate significant thermal responsiveness.
+      At 25°C (room temperature) the stent maintains high rigidity for navigating
+      tortuous ureteral anatomy, bypassing impacted calculi, and crossing obstructive
+      strictures. Upon reaching 37°C (body temperature), Percuflex softens by more
+      than 40%, allowing the stent to conform to ureteral curvature and reducing
+      mechanical trauma that drives stent-related symptoms. Tria Firm achieves 42%
+      softening (p < 0.001); Tria Soft achieves 57% softening (p < 0.001). Competitive
+      polyurethane stents average only 43.5% reduction and with variable clinical
+      predictability. This dual-state durometer directly addresses the historic
+      trade-off between surgical pushability and patient tolerability.
+
+  - id: tria_c_003
+    domain: clinical
+    section: evidence_best_study
+    approved_claim: false
+    source: "BSC Tria Salt Adhesion Study / Innovotech BEST™ Platform"
+    keywords: [BEST, encrustation, Bard Inlay Optima, calcium, magnesium, Proteus mirabilis, 59 percent, 41 percent, sterile, bacterial]
+    content: |
+      The BEST™ (Biofilm Eradication Surface Testing) platform from Innovotech was
+      used to compare Tria Firm vs Bard Inlay Optima under two conditions. In sterile
+      artificial urine: Tria accumulated 0.05 mg/cm² vs Bard's 0.12 mg/cm² — a 59%
+      reduction (p < 0.05). In Proteus mirabilis-spiked model: Tria accumulated
+      0.42 mg/cm² vs Bard's 0.72 mg/cm² — a 41% reduction (p < 0.05). Proteus
+      mirabilis produces urease, raising urinary pH and rapidly precipitating struvite
+      and hydroxyapatite crystals. The 59% reduction in sterile conditions confirms
+      intrinsic PercuShield material efficacy; the 41% reduction under bacterial
+      challenge demonstrates resilience even when biological factors accelerate
+      encrustation.
+
+  - id: tria_c_004
+    domain: clinical
+    section: evidence_uci_study
+    approved_claim: false
+    source: "ACS Omega 2023 / UC Irvine"
+    keywords: [UCI, ACS Omega, 5-stent, silicone, Cook, Bard, 11 weeks, calcium phosphate, calcium oxalate, mass change]
+    content: |
+      Independent research at UC Irvine (ACS Omega, 2023) compared 5 stent materials
+      over 11 weeks across two artificial urine models. Results for avg % mass change
+      (CaP/Struvite vs Ca Oxalate): Cook Black Silicone -5.3% / 17.2% (smooth,
+      partial encrustation); Boston Scientific Tria 37.6% / 30.0% (smooth, partial
+      encrustation); Bard Inlay Optima 49.1% / 55.2% (rough, full encrustation);
+      Cook Universa Hydrogel ~48% / ~52% (rough, full encrustation). Tria
+      significantly outperforms polymer-based competitors. While pure silicone
+      performs best in encrustation resistance, silicone lacks the column strength
+      for navigating tight ureters. Tria provides polymer pushability with
+      anti-adherence properties approaching silicone protection.
+
+  - id: tria_c_005
+    domain: clinical
+    section: forgotten_stent_syndrome
+    approved_claim: false
+    source: "AUA Journal / PMC / BSC eBrochure"
+    keywords: [forgotten stent, neglected, FECal, encrustation, 4-13 percent, 76 percent, six months, PCNL, renal failure]
+    content: |
+      Between 4% and 13% of stents are left indwelling beyond their intended removal
+      date. Severe encrustation risk increases exponentially with time: 76% of
+      long-term indwelling stents become encrusted within six months. A retained
+      stent can progress to Forgotten, Encrusted, and Calcified (FECal) stent
+      syndrome — a massive stone burden encasing the device. Consequences include
+      chronic pain, recurrent UTIs, hematuria, and eventual renal failure due to
+      obstructive uropathy. Management requires multiple invasive procedures:
+      PCNL and ureteroscopy with advanced lithotripsy. The Tria's 365-day indwell
+      clearance and PercuShield material provide a critical safety margin for
+      patients lost to follow-up.
+
+  - id: tria_c_006
+    domain: clinical
+    section: stent_complications_table
+    approved_claim: false
+    source: "BSC Tria eBrochure / PMC literature"
+    keywords: [migration, reflux, dysuria, coil strength, pigtail, drainage, lumen, inflammatory response]
+    content: |
+      Stent-related adverse events and Tria mitigation strategies:
+      Encrustation (stent blockage, stone formation, difficult removal) — PercuShield
+      non-polar copolymer surface. Migration (loss of drainage, irritation, procedural
+      failure) — high-retention Percuflex coil strength maintains pigtail shape.
+      Pain/Dysuria (reduced QoL, ER visits, opioid use) — 40%+ thermal softening of
+      Percuflex at body temperature. Infection (sepsis, hospitalization, renal damage)
+      — reduced mineral scaffold prevents bacterial biofilm formation. Additionally,
+      the large inner lumen and thin outer wall design promote optimal drainage even
+      in the presence of post-surgical inflammatory response. 80–90% of patients
+      experience discomfort following stent placement industry-wide — Tria is
+      engineered to reduce this burden.
+
+  # ── COF (Clinical-Operational-Financial) ──────────────────────────────────
+
+  - id: tria_cof_001
+    domain: cof
+    section: economic_burden
+    approved_claim: false
+    source: "LiquidSMARTS™ COF analysis / PMC literature"
+    keywords: [cost, re-intervention, PCNL, readmission, secondary procedure, overhead, reimbursement, VAC, ROI]
+    content: |
+      The clinical-economic burden of stent failure is the foundation of the Tria
+      value case. A single forgotten stent requiring operative intervention (PCNL +
+      ureteroscopy) costs a facility significantly more than the incremental price
+      difference of the Tria device. Re-intervention costs include OR time, anesthesia,
+      inpatient admission, nursing, and potential readmission penalties under
+      value-based care models. ER visits for stent-related pain consume nursing
+      capacity, generate unplanned costs, and reduce patient satisfaction scores
+      (HCAHPS). Each unplanned re-intervention driven by encrustation represents a
+      preventable cost — preventable with the right device selection at initial
+      placement.
+
+  - id: tria_cof_002
+    domain: cof
+    section: stakeholder_vac_messaging
+    approved_claim: false
+    source: "LiquidSMARTS™ stakeholder framework"
+    keywords: [VAC, value analysis committee, finance, total cost of ownership, readmission, patient satisfaction, investment]
+    content: |
+      VAC and finance stakeholders evaluate total cost of ownership, not unit price.
+      Key messages: (1) A single encrusted stent removal case costs more in OR time
+      and staff than the device price difference. (2) Prevention of complications
+      reduces readmission exposure under CMS quality metrics. (3) Reduced ER visits
+      for stent pain improve HCAHPS scores — directly tied to reimbursement. Position
+      Tria as an investment in reducing surgical overhead and protecting reimbursement,
+      not as a premium price line item. Strategic probing question: "What is the
+      average cost to your facility when a patient requires a secondary PCNL to
+      remove an encrusted or fragmented stent?"
+
+  - id: tria_cof_003
+    domain: cof
+    section: probing_questions
+    approved_claim: false
+    source: "LiquidSMARTS™ consultative framework"
+    keywords: [probing questions, discover, ER, forgotten, PCNL, VAC criteria, pain, 72 hours, cost]
+    content: |
+      Strategic probing questions for Tria consultative engagement:
+      Uncovering pain: "What percentage of your stent patients are returning to the
+      ER within 72 hours due to unmanaged pain or irritative symptoms?"
+      Evaluating clinical impact: "How many of your 'forgotten' stent cases in the
+      last year required more than a simple cystoscopic removal?"
+      Assessing economic cost: "What is the average cost to your facility when a
+      patient requires a secondary PCNL to remove an encrusted or fragmented stent?"
+      Determining decision criteria: "What specific clinical outcomes is your Value
+      Analysis Committee currently prioritizing for new implants?"
+      These questions follow the BSCI SALES framework: Discover (current state),
+      Dissect (consequences), Develop (path forward).
+
+  # ── OBJECTION HANDLING ─────────────────────────────────────────────────────
+
+  - id: tria_obj_001
+    domain: objection
+    section: price_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [price, too expensive, cost, unit cost, savings, long-term, compared to what, isolate]
+    content: |
+      When a customer states Tria is "too expensive": isolate the objection by asking
+      "Compared to what?" Then transition from unit cost to long-term savings. Use
+      UCI study data: Tria 30–37% mass change vs Bard Inlay 49–55% — a 30% performance
+      gap that translates to meaningfully lower re-intervention risk. One avoided PCNL
+      case recovers the device price differential for an entire year of cases. The
+      financial argument is not that Tria is cheap — it is that the cost of NOT using
+      Tria shows up in OR scheduling, readmissions, and unplanned procedures.
+      Frame: "The device cost is the smallest number in this conversation."
+
+  - id: tria_obj_002
+    domain: objection
+    section: competitive_silicone_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework / UCI study"
+    keywords: [silicone, Cook, competitive, pushability, column strength, tight ureter, anti-encrustation, trade-off]
+    content: |
+      When faced with silicone (e.g., Cook Black Silicone) performance: acknowledge
+      the material's excellence in encrustation resistance — do not dismiss it.
+      Then highlight the technical trade-off: silicone stents lack column strength
+      and are notoriously difficult to place in tight ureters, strictures, or during
+      complex stone surgery. A stent that can't be placed doesn't protect the patient.
+      Tria offers the pushability of a polymer stent with PercuShield anti-adherence
+      that approaches silicone-like protection and significantly outperforms all other
+      polymer competitors. UCI data: Tria 37.6% vs silicone -5.3% mass change —
+      silicone wins on encrustation; Tria wins when placement success also matters.
+
+  - id: tria_obj_003
+    domain: objection
+    section: workflow_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [workflow, switch, new stent, disruption, sizing, compatibility, 4.8F, 8F, portfolio, standardize]
+    content: |
+      When clinicians express hesitation about switching due to workflow disruption:
+      emphasize Tria's compatibility with standard urological tools and the breadth
+      of the sizing portfolio (4.8F to 8F), which allows seamless transition across
+      all patient types — from routine ureteroscopy to complex oncological drainage.
+      No new equipment is required. No new technique is required. The change is the
+      stent material on the shelf, not the procedure in the OR. Offer to review their
+      current SKU usage and map each case type to the appropriate Tria variant with
+      no gaps in coverage.
+
+  # ── COMPLIANCE ─────────────────────────────────────────────────────────────
+
+  - id: tria_comp_001
+    domain: compliance
+    section: fda_siuu_2025
+    approved_claim: true
+    source: "FDA SIUU Guidance January 2025"
+    keywords: [FDA, SIUU, unapproved use, off-label, disclosure, reprint, scientific soundness, 2025 guidance]
+    content: |
+      Per FDA January 2025 SIUU guidance: any communication regarding scientific data
+      on unapproved uses must (1) clearly state the use has not been approved and
+      safety/effectiveness have not been established; (2) be physically or digitally
+      separate from promotional materials; (3) be accompanied by the most current
+      FDA-required labeling; (4) provide a balanced view including contradictory data;
+      (5) exclude promotional techniques (celebrity endorsements, emotional appeals,
+      calls to value). For Tria: cleared for urinary drainage up to 365 days. Any
+      discussion of performance in off-label populations (pediatric, specific
+      oncological applications) must follow these protocols. Source publications must
+      meet generally accepted design and methodological standards for scientific
+      soundness.
+
+  # ── STAKEHOLDER PERSONAS ───────────────────────────────────────────────────
+
+  - id: tria_st_001
+    domain: stakeholder
+    section: surgeon_messaging
+    approved_claim: false
+    source: "LiquidSMARTS™ stakeholder framework"
+    keywords: [surgeon, urologist, navigation, pushability, callbacks, pain, placement, removal, stiffness]
+    content: |
+      The urological surgeon prioritizes clinical fluency and procedural success.
+      Key concerns: ability to traverse difficult ureters and reduction in patient
+      callbacks for pain. Lead message: highlight 25°C room-temperature stiffness
+      for navigational control and 37°C thermal softening for patient tolerability.
+      Use BEST™ data (59% salt reduction) to frame simplified future stent removals —
+      less encrustation means less complex retrieval. The surgeon's clinical day
+      improves when their stent placement decisions don't generate callbacks at 2am.
+      Strategic question: "How many of your patients call back within 72 hours after
+      stent placement for pain or voiding symptoms?"
+
+  - id: tria_st_002
+    domain: stakeholder
+    section: clinical_director_messaging
+    approved_claim: false
+    source: "LiquidSMARTS™ stakeholder framework"
+    keywords: [clinical director, nursing, ER visits, problem patients, follow-up, callbacks, workflow, clinic, removal]
+    content: |
+      Clinical directors and nursing staff focus on operational efficiency and
+      managing "problem patients" — those who generate repeated ER visits, phone
+      callbacks, and complex removal clinic appointments. Key messages: (1) The
+      365-day indwell clearance provides a safety margin for patients with poor
+      follow-up compliance. (2) Reduced irritative symptoms from Percuflex thermal
+      softening means fewer postoperative phone calls and unscheduled visits.
+      (3) Fewer encrusted stents means simpler removal clinics. Frame Tria as a
+      staff workload reduction tool, not just a better device. Strategic question:
+      "What percentage of your stent removal clinic cases involve complicated
+      retrievals versus routine pulls?"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEMPLATE — Copy this block to add a new chunk:
+#
+# - id: tria_[domain]_[NNN]          # domain: p=product, c=clinical, cof, obj, comp, st
+#   domain: product                   # product | clinical | cof | objection | compliance | stakeholder
+#   section: [section_name]
+#   approved_claim: false             # set true only for FDA-cleared or IFU-sourced language
+#   source: "[document name]"
+#   keywords: [keyword1, keyword2]
+#   content: |
+#     [Your content here. Keep to 150-400 words. One topic per chunk.
+#      Self-contained — do not require adjacent chunks to be meaningful.]
+# ─────────────────────────────────────────────────────────────────────────────
