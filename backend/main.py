@@ -522,11 +522,23 @@ async def get_sessions_api(user: dict = Depends(get_current_user)):
 
 @app.get("/api/series")
 async def get_series(user: dict = Depends(get_current_user)):
-    """List available training series (scenarios) for the current cohort."""
-    # Return static list for now — real impl queries Scenario table
-    return [
-        {"id": "tria-stents", "name": "VAC Stakeholder — Tria Stents", "persona": "VAC Buyer", "arc_stages": 6},
+    """List available training series for the current user."""
+    from backend.db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    async with AsyncSessionLocal() as pg:
+        result = await pg.execute(sa_text("""
+            SELECT ps.id::text, ps.name, COUNT(psi.id) AS stage_count
+            FROM practice_series ps
+            LEFT JOIN practice_series_items psi ON psi.series_id = ps.id
+            GROUP BY ps.id, ps.name
+            ORDER BY ps.created_at
+        """))
+        rows = result.fetchall()
+    series = [
+        {"id": r.id, "name": r.name, "stage_count": int(r.stage_count), "status": "not_started"}
+        for r in rows
     ]
+    return {"series": series}
 
 @app.get("/api/completions")
 async def get_completions(user: dict = Depends(get_current_user)):
