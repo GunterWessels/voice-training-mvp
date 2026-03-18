@@ -60,6 +60,10 @@ jobs:
         with: { node-version: '20' }
       - run: npm install -g @railway/cli
       - run: railway up --service voice-training-backend
-        env: { RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}" }
+        env:
+          RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}"
+          RAILWAY_PROJECT_ID: "902899d1-cafb-419a-861d-48609e7353ce"
       - run: railway up --service voice-training-frontend
-        env: { RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}" }
+        env:
+          RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}"
+          RAILWAY_PROJECT_ID: "902899d1-cafb-419a-861d-48609e7353ce"
