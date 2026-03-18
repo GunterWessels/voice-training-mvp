@@ -1,5 +1,4 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
 export const createClient = () =>
   createBrowserClient(
@@ -8,6 +7,7 @@ export const createClient = () =>
   )
 
 export const createServerSupabaseClient = async () => {
+  const { cookies } = await import('next/headers')
   const cookieStore = await cookies()  // Next.js 15: cookies() is async
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
