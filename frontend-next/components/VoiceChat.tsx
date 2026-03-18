@@ -5,6 +5,8 @@ import AudioStateDisplay from './AudioStateDisplay'
 import CofGates from './CofGates'
 import { useFillerAudio } from './FillerAudio'
 import OnboardingOverlay from './OnboardingOverlay'
+import { RepHint } from './RepHint'
+import { GradingDebrief } from './GradingDebrief'
 
 // Web Speech API — not included in TypeScript's default DOM lib
 interface ISpeechRecognitionEvent extends Event {
@@ -55,6 +57,8 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   const filler = useFillerAudio({ personaId: personaId || 'default' })
   const fillerRef = useRef(filler)
   fillerRef.current = filler  // keep ref current on every render
+  const [hint, setHint] = useState<string | null>(null)
+  const [debrief, setDebrief] = useState<any | null>(null)
 
   // Connect to WebSocket
   useEffect(() => {
@@ -90,6 +94,15 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
         if (msg.session_end) { sessionEndedRef.current = true; setSessionEnded(true) }
       }
 
+      if (msg.type === 'ai_response' && msg.hint) {
+        setHint(msg.hint as string)
+        setTimeout(() => setHint(null), 6000)
+      }
+
+      if (msg.type === 'grading_debrief') {
+        setDebrief(msg.debrief)
+      }
+
       if (msg.type === 'error') {
         setError(msg.message as string)
         setAudioState('idle')
@@ -106,6 +119,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
     wsRef.current.send(JSON.stringify({ type: 'user_message', text }))
     setMessages(prev => [...prev, { role: 'user', text }])
+    setHint(null)
     setAudioState('processing')
   }, [])
 
@@ -145,6 +159,8 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} />}
+      <RepHint hint={hint} />
+      <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
 
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 space-y-1">
