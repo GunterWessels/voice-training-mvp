@@ -25,6 +25,12 @@ class AIService:
         # Initialize TTS service
         self.tts_service = TTSService()
 
+        # Usage tracking for last AI call (populated by _call_openai / _call_anthropic)
+        self._last_tokens_in = 0
+        self._last_tokens_out = 0
+        self._last_provider = "openai"
+        self._last_model = "gpt-4o-mini"
+
     async def generate_response(
         self,
         persona: Dict,
@@ -315,6 +321,11 @@ class AIService:
                 raise Exception(f"OpenAI API error: {response.status_code} {response.text}")
 
             result = response.json()
+            usage = result.get("usage", {})
+            self._last_tokens_in = usage.get("prompt_tokens", 0)
+            self._last_tokens_out = usage.get("completion_tokens", 0)
+            self._last_provider = "openai"
+            self._last_model = "gpt-4o-mini"
             return result["choices"][0]["message"]["content"].strip()
 
     async def _call_anthropic(self, messages: List[Dict], max_tokens: int = 150) -> str:
@@ -348,6 +359,11 @@ class AIService:
                 raise Exception(f"Anthropic API error: {response.status_code} {response.text}")
 
             result = response.json()
+            usage = result.get("usage", {})
+            self._last_tokens_in = usage.get("input_tokens", 0)
+            self._last_tokens_out = usage.get("output_tokens", 0)
+            self._last_provider = "anthropic"
+            self._last_model = "claude-3-haiku-20240307"
             return result["content"][0]["text"].strip()
 
     def _parse_json_safely(self, raw: str) -> Optional[Dict[str, Any]]:

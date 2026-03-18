@@ -1,0 +1,1 @@
+{"id":"fixture_005","turns":[{"speaker":"user","text":"Hello, nice to meet you."},{"speaker":"ai","text":"Nice to meet you too."}],"expected":{"cof_clinical":false,"cof_operational":false,"cof_financial":false}}

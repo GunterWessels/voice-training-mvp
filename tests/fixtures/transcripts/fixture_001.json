@@ -1,0 +1,1 @@
+{"id":"fixture_001","turns":[{"speaker":"user","text":"What patient outcomes have you seen improve with the Tria system?"},{"speaker":"ai","text":"We've had fewer complications overall."}],"expected":{"cof_clinical":true,"cof_operational":false,"cof_financial":false}}

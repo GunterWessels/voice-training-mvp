@@ -1,0 +1,1 @@
+{"id":"fixture_007","turns":[{"speaker":"user","text":"How do patient safety risks factor into your clinical decision making?"},{"speaker":"user","text":"And how does workflow efficiency in the OR affect your team?"}],"expected":{"cof_clinical":true,"cof_operational":true,"cof_financial":false}}

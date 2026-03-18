@@ -1,0 +1,1 @@
+{"id":"fixture_002","turns":[{"speaker":"user","text":"How many OR cases do you run per week and what is your current throughput?"},{"speaker":"ai","text":"About 40 cases, but turnover is slow."}],"expected":{"cof_clinical":false,"cof_operational":true,"cof_financial":false}}

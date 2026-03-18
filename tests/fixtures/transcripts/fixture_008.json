@@ -1,0 +1,1 @@
+{"id":"fixture_008","turns":[{"speaker":"user","text":"What is the ROI you expect from reducing complication rates?"},{"speaker":"user","text":"How does stent encrustation affect patient care quality?"}],"expected":{"cof_clinical":true,"cof_operational":false,"cof_financial":true}}

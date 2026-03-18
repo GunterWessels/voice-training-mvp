@@ -1,0 +1,1 @@
+{"id":"fixture_003","turns":[{"speaker":"user","text":"What does a re-intervention cost your facility in direct expense?"},{"speaker":"ai","text":"It is a significant budget item."}],"expected":{"cof_clinical":false,"cof_operational":false,"cof_financial":true}}

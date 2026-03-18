@@ -1,0 +1,65 @@
+name: Test + Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: voice_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r backend/requirements.txt
+      - run: psql $DATABASE_URL -f backend/migrations/001_initial.sql
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/voice_test
+      - run: pytest tests/ -v --tb=short
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/voice_test
+          SUPABASE_JWT_SECRET: test-secret-at-least-32-characters-long!!
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_ANON_KEY: test-anon-key
+          OPENAI_API_KEY: sk-test
+          ELEVENLABS_API_KEY: test-el-key
+          ALLOWED_ORIGINS: http://localhost:3000
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: cd frontend-next && npm ci
+      - run: cd frontend-next && npx tsc --noEmit
+      - run: cd frontend-next && npm test -- --ci --passWithNoTests
+
+  deploy:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm install -g @railway/cli
+      - run: railway up --service voice-training-backend
+        env: { RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}" }
+      - run: railway up --service voice-training-frontend
+        env: { RAILWAY_TOKEN: "${{ secrets.RAILWAY_TOKEN }}" }
