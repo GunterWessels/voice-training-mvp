@@ -1,5 +1,4 @@
 import pytest
-from fastapi.testclient import TestClient
 
 def test_missing_token_returns_401(client):
     response = client.get("/api/sessions")
@@ -13,7 +12,7 @@ def test_invalid_token_returns_401(client):
 def test_valid_token_passes(client, valid_jwt):
     response = client.get("/api/sessions",
         headers={"Authorization": f"Bearer {valid_jwt}"})
-    assert response.status_code != 401
+    assert response.status_code == 200
 
 def test_expired_token_returns_401(client, expired_jwt):
     response = client.get("/api/sessions",

@@ -2,7 +2,7 @@ import pytest
 import os
 import sys
 from jose import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://localhost/voice_training_test")
@@ -34,7 +34,7 @@ async def async_client():
 def valid_jwt():
     return jwt.encode(
         {"sub": "user-uuid-123", "email": "rep@bsci.com", "role": "rep",
-         "aud": "authenticated", "exp": datetime.utcnow() + timedelta(hours=1)},
+         "aud": "authenticated", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
         os.environ["SUPABASE_JWT_SECRET"], algorithm="HS256"
     )
 
@@ -42,7 +42,7 @@ def valid_jwt():
 def expired_jwt():
     return jwt.encode(
         {"sub": "user-uuid-123", "aud": "authenticated",
-         "exp": datetime.utcnow() - timedelta(hours=1)},
+         "exp": datetime.now(timezone.utc) - timedelta(hours=1)},
         os.environ["SUPABASE_JWT_SECRET"], algorithm="HS256"
     )
 

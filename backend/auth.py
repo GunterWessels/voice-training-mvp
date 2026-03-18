@@ -19,7 +19,10 @@ async def get_current_user(
             algorithms=["HS256"],
             audience="authenticated",
         )
-        return {"user_id": payload["sub"], "email": payload.get("email"), "role": payload.get("role", "rep")}
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return {"user_id": user_id, "email": payload.get("email"), "role": payload.get("role", "rep")}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
