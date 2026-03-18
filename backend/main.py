@@ -57,6 +57,9 @@ cartridge_service = CartridgeService()
 # In-memory WebSocket connections
 connections: Dict[str, WebSocket] = {}
 
+# Per-session Tier 2 context and turn tracking (keyed by session_id)
+session_context: Dict[str, Dict[str, Any]] = {}
+
 
 class SessionCreate(BaseModel):
     persona_id: str
@@ -600,6 +603,16 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 scenario_obj = scenario_result.scalar_one_or_none()
                 if scenario_obj and scenario_obj.arc:
                     arc_tracker = ArcStageTracker(scenario_obj.arc)
+                # Initialize Tier 2 session context (evaluator + grading state)
+                if scenario_obj:
+                    session_context[session_id] = {
+                        "cof_map": scenario_obj.cof_map or {},
+                        "argument_rubrics": scenario_obj.argument_rubrics or {"stages": []},
+                        "grading_criteria": scenario_obj.grading_criteria or {},
+                        "methodology": scenario_obj.methodology or {},
+                        "turn_scores": [],
+                        "transcript": [],
+                    }
     except Exception as _arc_init_err:
         logging.warning("arc_engine init failed for session %s: %s", session_id, _arc_init_err)
 
@@ -696,6 +709,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
             db.add_message(session_id=session_id, speaker="user", text=user_text)
 
+            # Record user turn in grading transcript
+            if session_id in session_context:
+                arc_stage_for_turn = arc_tracker.current_stage if arc_tracker else None
+                session_context[session_id]["transcript"].append({
+                    "speaker": "user",
+                    "text": user_text,
+                    "arc_stage": arc_stage_for_turn,
+                })
+
             # Arc engine evaluation (PostgreSQL sessions only)
             if arc_tracker:
                 conversation_history_for_arc = [
@@ -719,6 +741,56 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                     except Exception as _arc_update_err:
                         logging.warning("arc_engine DB update failed for session %s: %s", session_id, _arc_update_err)
 
+            # Per-turn argument evaluation + RAG retrieval (PostgreSQL sessions with Tier 2 content)
+            _eval_result = None
+            _rag_chunks: List[Dict[str, Any]] = []
+            if session_id in session_context and arc_tracker:
+                try:
+                    from backend.argument_evaluator import evaluate_turn
+                    from backend.rag_service import retrieve, should_retrieve_for_stage
+
+                    _ctx = session_context[session_id]
+                    _arc_stage = arc_tracker.current_stage
+                    _rubric_stage = next(
+                        (s for s in _ctx["argument_rubrics"].get("stages", [])
+                         if s.get("arc_stage") == _arc_stage),
+                        {}
+                    )
+                    _methodology_step = next(
+                        (s for s in _ctx["methodology"].get("steps", [])
+                         if s.get("arc_stage") == _arc_stage),
+                        {}
+                    )
+                    _eval_result = await evaluate_turn(
+                        rep_text=user_text,
+                        arc_stage=_arc_stage,
+                        rubric_stage=_rubric_stage,
+                        cof_map=_ctx["cof_map"],
+                        methodology_step=_methodology_step,
+                    )
+                    _ctx["turn_scores"].append({
+                        "arc_stage": _arc_stage,
+                        "quality": _eval_result["argument_quality"],
+                        "score_delta": _eval_result["score_delta"],
+                    })
+
+                    # Tier 1 RAG retrieval for stages 3-5
+                    if should_retrieve_for_stage(_arc_stage):
+                        try:
+                            from backend.db import AsyncSessionLocal
+                            async with AsyncSessionLocal() as _rag_db:
+                                _rag_chunks = await retrieve(
+                                    query=user_text,
+                                    scenario_id=str(pg_session.scenario_id),
+                                    domain="clinical",
+                                    db=_rag_db,
+                                    top_k=3,
+                                )
+                        except Exception as _rag_err:
+                            logging.warning("RAG retrieval failed for session %s: %s", session_id, _rag_err)
+                except Exception as _eval_err:
+                    logging.warning("argument_evaluator failed for session %s: %s", session_id, _eval_err)
+
             # Refresh cartridge (features can change mid-session)
             cartridge_data = cartridge_service.get_cartridge_for_practice(cartridge_id) if cartridge_id else None
 
@@ -728,6 +800,17 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 if selected_scenario:
                     base_rag_context = dict(base_rag_context)
                     base_rag_context["selected_scenario"] = selected_scenario
+
+            # Inject evaluator + RAG outputs into rag_context for the AI turn
+            if _eval_result or _rag_chunks:
+                base_rag_context = dict(base_rag_context) if base_rag_context else {}
+                if _eval_result and _eval_result.get("persona_instruction"):
+                    base_rag_context["persona_instruction"] = _eval_result["persona_instruction"]
+                if _rag_chunks:
+                    base_rag_context["rag_chunks"] = [c["content"] for c in _rag_chunks]
+                    base_rag_context["approved_chunks"] = [
+                        c["content"] for c in _rag_chunks if c.get("approved_claim")
+                    ]
 
             # Avoid duplicating the most recent user message in both history and user_input
             conversation_history = db.get_messages(session_id)[:-1]
@@ -745,6 +828,30 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                             "audio": None,
                             "session_end": True,
                         })
+                        # Grading debrief on budget-cap session end
+                        try:
+                            import json as _json
+                            from backend.grading_agent import grade_session as _grade_session
+                            from backend.db import AsyncSessionLocal as _GradeSessionLocal
+                            from sqlalchemy import text as _sa_text
+                            _gctx = session_context.get(session_id, {})
+                            if _gctx.get("grading_criteria") and _gctx.get("transcript"):
+                                _debrief = await _grade_session(
+                                    transcript=_gctx["transcript"],
+                                    turn_scores=_gctx["turn_scores"],
+                                    grading_criteria=_gctx["grading_criteria"],
+                                    cof_map=_gctx["cof_map"],
+                                    methodology=_gctx["methodology"],
+                                )
+                                async with _GradeSessionLocal() as _gdb:
+                                    await _gdb.execute(
+                                        _sa_text("UPDATE completions SET dimension_scores = :scores::jsonb WHERE session_id = :sid"),
+                                        {"scores": _json.dumps(_debrief), "sid": session_id}
+                                    )
+                                    await _gdb.commit()
+                                await websocket.send_json({"type": "grading_debrief", "debrief": _debrief})
+                        except Exception as _grade_cap_err:
+                            logging.warning("grading on budget-cap end failed for session %s: %s", session_id, _grade_cap_err)
                         # Issue cert if earned
                         if arc_tracker:
                             try:
@@ -786,6 +893,14 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
             db.add_message(session_id=session_id, speaker="ai", text=ai_response["text"])
 
+            # Record AI turn in grading transcript
+            if session_id in session_context:
+                session_context[session_id]["transcript"].append({
+                    "speaker": "ai",
+                    "text": ai_response["text"],
+                    "arc_stage": arc_tracker.current_stage if arc_tracker else None,
+                })
+
             # Metering: fire-and-forget cost event for this AI turn
             if pg_session:
                 try:
@@ -825,10 +940,40 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 except Exception:
                     pass
 
+            # Hint from argument evaluator (shown to rep, not part of AI persona response)
+            if _eval_result and _eval_result.get("hint_for_rep"):
+                message_data["hint"] = _eval_result["hint_for_rep"]
+
             await websocket.send_json(message_data)
 
     except WebSocketDisconnect:
         connections.pop(session_id, None)
+        # Grading debrief on clean disconnect
+        try:
+            import json as _json
+            from backend.grading_agent import grade_session as _grade_session
+            from backend.db import AsyncSessionLocal as _GradeSessionLocal
+            from sqlalchemy import text as _sa_text
+            _gctx = session_context.get(session_id, {})
+            if _gctx.get("grading_criteria") and _gctx.get("transcript"):
+                _debrief = await _grade_session(
+                    transcript=_gctx["transcript"],
+                    turn_scores=_gctx["turn_scores"],
+                    grading_criteria=_gctx["grading_criteria"],
+                    cof_map=_gctx["cof_map"],
+                    methodology=_gctx["methodology"],
+                )
+                async with _GradeSessionLocal() as _gdb:
+                    await _gdb.execute(
+                        _sa_text("UPDATE completions SET dimension_scores = :scores::jsonb WHERE session_id = :sid"),
+                        {"scores": _json.dumps(_debrief), "sid": session_id}
+                    )
+                    await _gdb.commit()
+                # websocket is closed on disconnect — store debrief but don't send
+        except Exception as _grade_disc_err:
+            logging.warning("grading on disconnect failed for session %s: %s", session_id, _grade_disc_err)
+        # Cleanup session context
+        session_context.pop(session_id, None)
         # Check cert eligibility on clean disconnect (budget cap path already handled separately)
         if arc_tracker and pg_session and ws_user:
             try:
@@ -866,6 +1011,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
         except Exception:
             pass
         connections.pop(session_id, None)
+        session_context.pop(session_id, None)
 
 
 @app.post("/sessions/{session_id}/score")

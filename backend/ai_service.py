@@ -187,6 +187,10 @@ class AIService:
         conversation_guidelines = rag_context.get("conversation_guidelines")
         selected_scenario = rag_context.get("selected_scenario")
         prompt_instructions = rag_context.get("prompt_instructions")
+        # Evaluator-injected per-turn overrides (populated by argument_evaluator)
+        evaluator_persona_instruction = rag_context.get("persona_instruction")
+        rag_chunks = rag_context.get("rag_chunks") or []
+        approved_chunks = rag_context.get("approved_chunks") or []
 
         difficulty_notes = []
         if training_features.get("objection_handling"):
@@ -238,6 +242,25 @@ class AIService:
 
         if conversation_guidelines:
             system_parts.append("\nTraining mode guidelines:\n" + str(conversation_guidelines).strip())
+
+        # Per-turn evaluator persona override (from argument_evaluator based on rep quality)
+        if evaluator_persona_instruction:
+            system_parts.append(
+                "\nCurrent stage behavior instruction (override default disposition for this turn):\n"
+                + str(evaluator_persona_instruction).strip()
+            )
+
+        # Tier 1 RAG: approved claims take precedence; all chunks provide grounding
+        if approved_chunks:
+            system_parts.append(
+                "\nApproved clinical/product claims you may reference (cite accurately, do not fabricate):\n"
+                + "\n".join(f"- {c}" for c in approved_chunks[:3])
+            )
+        elif rag_chunks:
+            system_parts.append(
+                "\nRelevant product/clinical context (use to ground your responses):\n"
+                + "\n".join(f"- {c}" for c in rag_chunks[:3])
+            )
 
         if structured_output:
             system_parts.append(
