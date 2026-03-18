@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -40,7 +42,8 @@ app.add_middleware(
 # Global exception handler — sanitizes errors, never exposes stack traces
 @app.exception_handler(Exception)
 async def sanitized_exception_handler(request, exc):
-    import logging
+    if isinstance(exc, HTTPException):
+        raise exc
     logging.error(f"Unhandled error: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"error": "processing_error"})
 
