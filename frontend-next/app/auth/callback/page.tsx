@@ -13,6 +13,7 @@ export default function CallbackPage() {
   const [state, setState] = useState<State>('verifying')
   const [firstName, setFirstName] = useState('')
   const [animating, setAnimating] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -27,6 +28,24 @@ export default function CallbackPage() {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
         if (event === 'SIGNED_IN') {
           subscription.unsubscribe()
+          // Check allowlist
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            const API = process.env.NEXT_PUBLIC_API_URL ?? ''
+            try {
+              const checkRes = await fetch(`${API}/api/auth/check`, {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              })
+              if (!checkRes.ok) {
+                await supabase.auth.signOut()
+                setErrorMsg('Your email is not on the access list. Contact your program administrator.')
+                setState('error')
+                return
+              }
+            } catch {
+              // Network error — fail open so infra issues don't lock users out
+            }
+          }
           await showWelcome(supabase)
         } else if (event === 'SIGNED_OUT') {
           setState('error')
@@ -87,7 +106,9 @@ export default function CallbackPage() {
 
         {state === 'error' && (
           <div className="flex flex-col items-center text-center gap-3">
-            <p className="text-[14px] text-[#1a202c] font-semibold">This link has expired or already been used.</p>
+            <p className="text-[14px] text-[#1a202c] font-semibold">
+              {errorMsg || 'This link has expired or already been used.'}
+            </p>
             <Link href="/auth/login" className="text-[13px] text-[#0073CF] hover:underline">
               Request a new link →
             </Link>
