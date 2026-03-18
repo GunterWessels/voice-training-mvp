@@ -71,8 +71,8 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
       try { msg = JSON.parse(event.data) } catch { return }
 
       if (msg.type === 'ready') {
-        setPersonaId(msg.persona_id as string)
-        setScenarioName(msg.scenario_name as string)
+        setPersonaId((msg.persona as any)?.id ?? '')
+        setScenarioName((msg.scenario as any)?.name ?? 'Training Session')
       }
 
       if (msg.type === 'ai_message') {
@@ -81,12 +81,13 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
         if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
         if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
 
-        // Play audio
-        if (msg.audio_b64) {
+        // Play audio — backend sends field as "audio" (base64 mp3)
+        const audioB64 = (msg.audio_b64 ?? msg.audio) as string | undefined
+        if (audioB64) {
           setAudioState('speaking')
-          const audio = new Audio(`data:audio/mp3;base64,${msg.audio_b64}`)
-          audio.onended = () => setAudioState('idle')
-          audio.play().catch(() => setAudioState('idle'))
+          const audioEl = new Audio(`data:audio/mp3;base64,${audioB64}`)
+          audioEl.onended = () => setAudioState('idle')
+          audioEl.play().catch(() => setAudioState('idle'))
         } else {
           setAudioState('idle')
         }
