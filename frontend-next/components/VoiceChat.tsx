@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import ArcProgress from './ArcProgress'
+import AudioStateDisplay from './AudioStateDisplay'
 import CofGates from './CofGates'
 import { useFillerAudio } from './FillerAudio'
 import OnboardingOverlay from './OnboardingOverlay'
@@ -168,7 +169,7 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
 
       {/* Controls */}
       <div className="bg-white border-t p-4 flex flex-col items-center gap-3">
-        <p className="text-xs text-gray-500 capitalize">{audioState === 'idle' ? 'Tap to speak' : audioState + '…'}</p>
+        <AudioStateDisplay state={audioState} />
         <button
           onClick={startListening}
           disabled={audioState !== 'idle'}
