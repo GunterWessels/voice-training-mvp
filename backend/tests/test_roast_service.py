@@ -3,8 +3,6 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-pytestmark = pytest.mark.asyncio
-
 
 def make_messages(lines):
     return [{"speaker": s, "text": t} for s, t in lines]
