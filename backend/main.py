@@ -1,8 +1,13 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+import os
 import uuid
 from typing import Dict, List, Optional, Any
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from pydantic import BaseModel, Field
 
@@ -16,14 +21,28 @@ from auth import get_current_user, verify_ws_token
 
 app = FastAPI(title="Voice Training Platform MVP")
 
-# CORS middleware
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS middleware — driven by ALLOWED_ORIGINS env var
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# Global exception handler — sanitizes errors, never exposes stack traces
+@app.exception_handler(Exception)
+async def sanitized_exception_handler(request, exc):
+    import logging
+    logging.error(f"Unhandled error: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"error": "processing_error"})
 
 # Initialize services
 db = Database()
@@ -171,7 +190,8 @@ async def get_tts_info():
 
 
 @app.post("/sessions")
-async def create_session(session_data: SessionCreate):
+@limiter.limit("20/minute")
+async def create_session(request: Request, session_data: SessionCreate):
     """Create a new training session"""
 
     session_id = str(uuid.uuid4())
