@@ -22,7 +22,7 @@ function SessionNewContent() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(({ session_id }) => router.replace(`/session/${session_id}`))
+        .then(({ session_id }) => router.replace(`/session/${session_id}?series=${seriesId}`))
         .catch(() => router.replace('/dashboard'))
     })
   }, [seriesId, router])

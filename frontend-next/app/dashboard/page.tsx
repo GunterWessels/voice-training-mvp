@@ -6,7 +6,20 @@ import CCEHeader from '@/components/CCEHeader'
 interface Completions {
   sessions_completed: number
   certs_earned: number
+  avg_score: number
   streak_days: number | null
+}
+
+interface SessionRecord {
+  session_id: string
+  scenario_name: string
+  score: number
+  arc_stage: number
+  cof_clinical: boolean
+  cof_operational: boolean
+  cof_financial: boolean
+  cert_issued: boolean
+  completed_at: string | null
 }
 
 interface SeriesItem {
@@ -31,9 +44,11 @@ export default function DashboardPage() {
   const [completions, setCompletions] = useState<Completions>({
     sessions_completed: 0,
     certs_earned: 0,
+    avg_score: 0,
     streak_days: null,
   })
   const [series, setSeries] = useState<SeriesItem[]>([])
+  const [recentSessions, setRecentSessions] = useState<SessionRecord[]>([])
 
   useEffect(() => {
     const supabase = createClient()
@@ -52,9 +67,11 @@ export default function DashboardPage() {
       Promise.all([
         fetch(`${API}/api/completions`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/api/series`, { headers }).then(r => r.ok ? r.json() : null),
-      ]).then(([comp, ser]) => {
+        fetch(`${API}/api/sessions`, { headers }).then(r => r.ok ? r.json() : null),
+      ]).then(([comp, ser, sessions]) => {
         if (comp) setCompletions(comp)
         if (ser?.series) setSeries(ser.series)
+        if (Array.isArray(sessions)) setRecentSessions(sessions)
       }).catch(() => {/* silent */})
     })
   }, [])
@@ -128,8 +145,35 @@ export default function DashboardPage() {
           <p className="text-[10px] font-semibold text-[#a0aec0] uppercase tracking-widest mb-2">
             Recent Sessions
           </p>
-          <div className="bg-white rounded-xl shadow-sm">
-            <p className="text-[12px] text-[#a0aec0] text-center py-6">No sessions yet</p>
+          <div className="bg-white rounded-xl shadow-sm divide-y divide-[#f0f4f8]">
+            {recentSessions.length === 0 ? (
+              <p className="text-[12px] text-[#a0aec0] text-center py-6">No sessions yet</p>
+            ) : (
+              recentSessions.map((s) => (
+                <div key={s.session_id} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-[#1a202c] truncate">{s.scenario_name}</p>
+                    <p className="text-[10px] text-[#a0aec0] mt-0.5">
+                      Stage {s.arc_stage} ·{' '}
+                      {s.completed_at
+                        ? new Date(s.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                        : 'In progress'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* COF flags */}
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_clinical ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>C</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_operational ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>O</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_financial ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>F</span>
+                    {/* Score */}
+                    <span className={`text-[13px] font-bold min-w-[36px] text-right ${
+                      s.score >= 80 ? 'text-emerald-600' : s.score >= 60 ? 'text-amber-500' : 'text-red-500'
+                    }`}>{s.score}</span>
+                    {s.cert_issued && <span className="text-[11px]" title="Certificate earned">🏅</span>}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -140,14 +184,14 @@ export default function DashboardPage() {
             <p className="text-[10px] text-[#718096] mt-0.5">Sessions</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-            <p className="text-[18px] font-bold text-[#1a202c]">{completions.certs_earned}</p>
-            <p className="text-[10px] text-[#718096] mt-0.5">Certs</p>
+            <p className="text-[18px] font-bold text-[#1a202c]">
+              {completions.avg_score > 0 ? completions.avg_score : '—'}
+            </p>
+            <p className="text-[10px] text-[#718096] mt-0.5">Avg Score</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-            <p className="text-[18px] font-bold text-[#1a202c]">
-              {completions.streak_days !== null ? completions.streak_days : '—'}
-            </p>
-            <p className="text-[10px] text-[#718096] mt-0.5">Streak</p>
+            <p className="text-[18px] font-bold text-[#1a202c]">{completions.certs_earned}</p>
+            <p className="text-[10px] text-[#718096] mt-0.5">Certs</p>
           </div>
         </div>
       </main>

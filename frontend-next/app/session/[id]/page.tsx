@@ -1,14 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import VoiceChat from '@/components/VoiceChat'
+import { Suspense } from 'react'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
-export default function SessionPage() {
+function SessionContent() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const params = useSearchParams()
+  const seriesId = params.get('series') ?? undefined
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,5 +30,17 @@ export default function SessionPage() {
     )
   }
 
-  return <VoiceChat sessionId={id} token={token} apiBase={API} />
+  return <VoiceChat sessionId={id} token={token} apiBase={API} seriesId={seriesId} />
+}
+
+export default function SessionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <p className="text-sm text-[#718096]">Loading…</p>
+      </div>
+    }>
+      <SessionContent />
+    </Suspense>
+  )
 }

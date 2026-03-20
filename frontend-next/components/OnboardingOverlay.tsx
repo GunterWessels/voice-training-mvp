@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-const SCRIPT = "Quick heads up — this is a live conversation arc. Your buyer is real enough to push back. She's listening for whether you can surface what's going wrong clinically, operationally, and financially — and move her toward a trial. Discovery first, resolution follows. You've got this. Tap to start."
+const SCRIPT = "We're practicing — nothing here is real. Speak naturally, like you're in the room. Don't try to record anything, just talk. I'm listening for discovery, COF impact, and how you handle objections. Tap anywhere when you're ready."
 
 export default function OnboardingOverlay({ onDismiss }: { onDismiss: () => void }) {
   const [visible, setVisible] = useState(true)

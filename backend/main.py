@@ -580,8 +580,47 @@ async def get_api_session(
 
 @app.get("/api/sessions")
 async def get_sessions_api(user: dict = Depends(get_current_user)):
-    """Auth-protected alias used by tests."""
-    return []
+    """Return this user's recent sessions with scores for dashboard history."""
+    import uuid as uuid_mod
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    try:
+        user_uuid = uuid_mod.UUID(user["user_id"])
+    except (ValueError, AttributeError):
+        user_uuid = uuid_mod.uuid5(uuid_mod.NAMESPACE_DNS, str(user["user_id"]))
+    async with AsyncSessionLocal() as pg:
+        rows = (await pg.execute(sa_text("""
+            SELECT
+                c.session_id::text,
+                s.name       AS scenario_name,
+                c.score,
+                c.arc_stage_reached,
+                c.cof_clinical,
+                c.cof_operational,
+                c.cof_financial,
+                c.cert_issued,
+                c.dimension_scores,
+                c.completed_at
+            FROM completions c
+            JOIN scenarios s ON s.id = c.scenario_id
+            WHERE c.user_id = :uid
+            ORDER BY c.completed_at DESC NULLS LAST
+            LIMIT 20
+        """), {"uid": user_uuid})).fetchall()
+    return [
+        {
+            "session_id":      r.session_id,
+            "scenario_name":   r.scenario_name,
+            "score":           r.score,
+            "arc_stage":       r.arc_stage_reached,
+            "cof_clinical":    r.cof_clinical,
+            "cof_operational": r.cof_operational,
+            "cof_financial":   r.cof_financial,
+            "cert_issued":     r.cert_issued,
+            "completed_at":    r.completed_at.isoformat() if r.completed_at else None,
+        }
+        for r in rows
+    ]
 
 
 @app.get("/api/series")
@@ -655,8 +694,29 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
 
 @app.get("/api/completions")
 async def get_completions(user: dict = Depends(get_current_user)):
-    """Return rep's session completion + cert status."""
-    return {"sessions_completed": 0, "certs_earned": 0, "streak": 0, "cof_pass_rate": 0.0}
+    """Return rep's session completion + cert status from real completions table."""
+    import uuid as uuid_mod
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    try:
+        user_uuid = uuid_mod.UUID(user["user_id"])
+    except (ValueError, AttributeError):
+        user_uuid = uuid_mod.uuid5(uuid_mod.NAMESPACE_DNS, str(user["user_id"]))
+    async with AsyncSessionLocal() as pg:
+        row = (await pg.execute(sa_text("""
+            SELECT
+                COUNT(*)                          AS sessions_completed,
+                SUM(CASE WHEN cert_issued THEN 1 ELSE 0 END) AS certs_earned,
+                ROUND(AVG(score))                 AS avg_score
+            FROM completions
+            WHERE user_id = :uid
+        """), {"uid": user_uuid})).fetchone()
+    return {
+        "sessions_completed": int(row.sessions_completed or 0),
+        "certs_earned":       int(row.certs_earned or 0),
+        "avg_score":          int(row.avg_score or 0),
+        "streak_days":        None,
+    }
 
 @app.get("/api/manager/cohort")
 async def get_manager_cohort(user: dict = Depends(get_current_user)):

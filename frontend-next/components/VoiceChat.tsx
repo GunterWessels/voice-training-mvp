@@ -39,9 +39,10 @@ interface Props {
   sessionId: string
   token: string
   apiBase: string
+  seriesId?: string  // passed through for "Practice Again" routing
 }
 
-export default function VoiceChat({ sessionId, token, apiBase }: Props) {
+export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props) {
   const wsRef = useRef<WebSocket | null>(null)
   const recognitionRef = useRef<ISpeechRecognition | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)  // prevent GC before onended fires
@@ -186,13 +187,29 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   if (sessionEnded) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-6">
-        {/* Show debrief overlay on top of session-complete screen if it arrived */}
+        {/* Show debrief overlay on top if it arrived */}
         <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
         <h2 className="text-2xl font-bold text-gray-900">Session Complete</h2>
         <CofGates {...cofGates} />
         {!debrief && (
           <p className="text-gray-500 text-sm">Check your email for results and your certificate if earned.</p>
         )}
+        <div className="flex flex-col items-center gap-3 pt-2">
+          {seriesId && (
+            <a
+              href={`/session/new?series=${seriesId}`}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+            >
+              Practice Again
+            </a>
+          )}
+          <a
+            href="/dashboard"
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Back to Dashboard
+          </a>
+        </div>
       </div>
     )
   }
