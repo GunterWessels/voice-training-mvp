@@ -73,6 +73,30 @@ async def seed_tria_scenario():
     except Exception as _e:
         logging.warning("Tria scenario seed failed (non-fatal): %s", _e)
 
+
+@app.on_event("startup")
+async def promote_admin_emails():
+    """Promote emails listed in ADMIN_EMAILS env var to admin role (upsert)."""
+    raw = os.environ.get("ADMIN_EMAILS", "").strip()
+    if not raw:
+        return
+    emails = [e.strip() for e in raw.split(",") if e.strip()]
+    try:
+        from db import AsyncSessionLocal
+        from sqlalchemy import text as _t
+        async with AsyncSessionLocal() as _pg:
+            for email in emails:
+                await _pg.execute(_t("""
+                    INSERT INTO users (id, email, role)
+                    VALUES (gen_random_uuid(), :email, 'admin')
+                    ON CONFLICT (email) DO UPDATE SET role = 'admin'
+                """), {"email": email})
+            await _pg.commit()
+        logging.info("Admin emails promoted: %s", emails)
+    except Exception as _e:
+        logging.warning("Admin email promotion failed (non-fatal): %s", _e)
+
+
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
