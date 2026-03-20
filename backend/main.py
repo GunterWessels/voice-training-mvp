@@ -27,6 +27,52 @@ from routers.admin import router as admin_router
 
 app = FastAPI(title="Voice Training Platform MVP")
 
+
+@app.on_event("startup")
+async def seed_tria_scenario():
+    """Seed Tria Stents scenario JSONB columns if not yet populated."""
+    import json as _json
+    SCENARIO_ID = "bbe7c082-687f-4b62-9b3e-69e1bd87537c"
+    try:
+        from db import AsyncSessionLocal
+        from sqlalchemy import text as _t
+        async with AsyncSessionLocal() as _pg:
+            row = (await _pg.execute(
+                _t("SELECT arc FROM scenarios WHERE id = :sid"),
+                {"sid": SCENARIO_ID}
+            )).fetchone()
+            if not row or row.arc:
+                return  # not found, or already seeded
+
+        # Import seed data from companion module (avoids large inline dict)
+        import importlib, sys, os
+        spec_path = os.path.join(os.path.dirname(__file__), "seed_tria_scenario.py")
+        spec = importlib.util.spec_from_file_location("seed_tria", spec_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # load constants without running asyncio.run()
+
+        async with AsyncSessionLocal() as _pg:
+            await _pg.execute(_t("""
+                UPDATE scenarios SET
+                    arc              = :arc::jsonb,
+                    cof_map          = :cof_map::jsonb,
+                    argument_rubrics = :rubrics::jsonb,
+                    grading_criteria = :grading::jsonb,
+                    methodology      = :methodology::jsonb
+                WHERE id = :sid
+            """), {
+                "arc":        _json.dumps(mod.ARC),
+                "cof_map":    _json.dumps(mod.COF_MAP),
+                "rubrics":    _json.dumps(mod.ARGUMENT_RUBRICS),
+                "grading":    _json.dumps(mod.GRADING_CRITERIA),
+                "methodology": _json.dumps(mod.METHODOLOGY),
+                "sid":        SCENARIO_ID,
+            })
+            await _pg.commit()
+        logging.info("Tria scenario seeded successfully.")
+    except Exception as _e:
+        logging.warning("Tria scenario seed failed (non-fatal): %s", _e)
+
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
