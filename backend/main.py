@@ -857,6 +857,38 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
         while True:
             data = await websocket.receive_json()
 
+            if data.get("type") == "end_session":
+                # User explicitly ended the session — run grading then send debrief + session_end
+                try:
+                    import json as _json
+                    from grading_agent import grade_session as _grade_session
+                    from db import AsyncSessionLocal as _GradeSessionLocal
+                    from sqlalchemy import text as _sa_text
+                    _gctx = session_context.get(session_id, {})
+                    if _gctx.get("grading_criteria") and _gctx.get("transcript"):
+                        _debrief = await _grade_session(
+                            transcript=_gctx["transcript"],
+                            turn_scores=_gctx["turn_scores"],
+                            grading_criteria=_gctx["grading_criteria"],
+                            cof_map=_gctx["cof_map"],
+                            methodology=_gctx["methodology"],
+                        )
+                        async with _GradeSessionLocal() as _gdb:
+                            await _gdb.execute(
+                                _sa_text("UPDATE completions SET dimension_scores = :scores::jsonb WHERE session_id = :sid"),
+                                {"scores": _json.dumps(_debrief), "sid": session_id}
+                            )
+                            await _gdb.commit()
+                        await websocket.send_json({"type": "grading_debrief", "debrief": _debrief})
+                except Exception as _end_grade_err:
+                    logging.warning("grading on end_session failed for session %s: %s", session_id, _end_grade_err)
+                await websocket.send_json({
+                    "type": "ai_message",
+                    "text": "Great work today. Your results are on their way.",
+                    "session_end": True,
+                })
+                break
+
             if data.get("type") != "user_message":
                 continue
 

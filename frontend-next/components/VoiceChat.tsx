@@ -44,6 +44,7 @@ interface Props {
 export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   const wsRef = useRef<WebSocket | null>(null)
   const recognitionRef = useRef<ISpeechRecognition | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)  // prevent GC before onended fires
   const [audioState, setAudioState] = useState<AudioState>('idle')
   const [messages, setMessages] = useState<Message[]>([])
   const [arcStage, setArcStage] = useState(0)
@@ -94,13 +95,14 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
           if (audioB64) {
             setAudioState('speaking')
             const audioEl = new Audio(`data:audio/mp3;base64,${audioB64}`)
-            audioEl.onended = () => setAudioState('idle')
-            audioEl.play().catch(() => setAudioState('idle'))
+            audioRef.current = audioEl  // hold ref to prevent GC before onended fires
+            audioEl.onended = () => { audioRef.current = null; setAudioState('idle') }
+            audioEl.play().catch(() => { audioRef.current = null; setAudioState('idle') })
           } else {
             setAudioState('idle')
           }
 
-          if (msg.session_end) { sessionEndedRef.current = true; setSessionEnded(true) }
+          if (msg.session_end) { sessionEndedRef.current = true; setSessionEnded(true); setAudioState('idle') }
         }
 
         if (msg.type === 'ai_response' && msg.hint) {
@@ -175,12 +177,22 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
 
   const dismissOnboarding = useCallback(() => setShowOnboarding(false), [])
 
+  const endSession = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+    wsRef.current.send(JSON.stringify({ type: 'end_session' }))
+    setAudioState('idle')
+  }, [])
+
   if (sessionEnded) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-6">
+        {/* Show debrief overlay on top of session-complete screen if it arrived */}
+        <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
         <h2 className="text-2xl font-bold text-gray-900">Session Complete</h2>
         <CofGates {...cofGates} />
-        <p className="text-gray-500 text-sm">Check your email for results and your certificate if earned.</p>
+        {!debrief && (
+          <p className="text-gray-500 text-sm">Check your email for results and your certificate if earned.</p>
+        )}
       </div>
     )
   }
@@ -226,6 +238,14 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
           aria-label="Start speaking"
         >
           🎤
+        </button>
+        <button
+          onClick={endSession}
+          disabled={audioState !== 'idle'}
+          className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
+          aria-label="End session"
+        >
+          End Session
         </button>
       </div>
     </div>
