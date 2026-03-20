@@ -752,27 +752,183 @@ async def get_completions(user: dict = Depends(get_current_user)):
         "streak_days":        None,
     }
 
+@app.get("/api/admin/sessions")
+async def get_admin_sessions(user: dict = Depends(get_current_user)):
+    """All sessions across all users — admin view."""
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    async with AsyncSessionLocal() as pg:
+        rows = (await pg.execute(sa_text("""
+            SELECT
+                c.session_id::text,
+                u.email,
+                COALESCE(u.first_name || ' ' || u.last_name, u.email) AS rep_name,
+                s.name        AS scenario_name,
+                c.score,
+                c.arc_stage_reached,
+                c.cof_clinical,
+                c.cof_operational,
+                c.cof_financial,
+                c.cert_issued,
+                c.completed_at
+            FROM completions c
+            JOIN users u ON u.id = c.user_id
+            JOIN scenarios s ON s.id = c.scenario_id
+            ORDER BY c.completed_at DESC NULLS LAST
+            LIMIT 200
+        """))).fetchall()
+    return [
+        {
+            "session_id":      r.session_id,
+            "email":           r.email,
+            "rep_name":        r.rep_name.strip(),
+            "scenario_name":   r.scenario_name,
+            "score":           r.score,
+            "arc_stage":       r.arc_stage_reached,
+            "cof_clinical":    r.cof_clinical,
+            "cof_operational": r.cof_operational,
+            "cof_financial":   r.cof_financial,
+            "cert_issued":     r.cert_issued,
+            "completed_at":    r.completed_at.isoformat() if r.completed_at else None,
+        }
+        for r in rows
+    ]
+
+
 @app.get("/api/manager/cohort")
 async def get_manager_cohort(user: dict = Depends(get_current_user)):
-    """Return cohort rep summary for manager view."""
-    return {"reps": [], "total": 0}
+    """Aggregate rep performance for manager view."""
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    async with AsyncSessionLocal() as pg:
+        rows = (await pg.execute(sa_text("""
+            SELECT
+                u.id::text,
+                u.email,
+                COALESCE(u.first_name || ' ' || u.last_name, u.email) AS rep_name,
+                COUNT(c.id)                                            AS sessions,
+                ROUND(AVG(c.score))                                    AS avg_score,
+                SUM(CASE WHEN c.cert_issued THEN 1 ELSE 0 END)        AS certs,
+                ROUND(
+                    100.0 * SUM(CASE WHEN c.cof_clinical AND c.cof_operational AND c.cof_financial THEN 1 ELSE 0 END)
+                    / NULLIF(COUNT(c.id), 0)
+                )                                                      AS cof_pass_rate,
+                MAX(c.completed_at)                                    AS last_active
+            FROM users u
+            LEFT JOIN completions c ON c.user_id = u.id
+            WHERE u.role = 'rep'
+            GROUP BY u.id, u.email, u.first_name, u.last_name
+            ORDER BY last_active DESC NULLS LAST
+        """))).fetchall()
+    reps = [
+        {
+            "id":           r.id,
+            "email":        r.email,
+            "rep_name":     r.rep_name.strip(),
+            "sessions":     int(r.sessions or 0),
+            "avg_score":    int(r.avg_score or 0),
+            "certs":        int(r.certs or 0),
+            "cof_pass_rate": int(r.cof_pass_rate or 0),
+            "last_active":  r.last_active.isoformat() if r.last_active else None,
+        }
+        for r in rows
+    ]
+    return {"reps": reps, "total": len(reps)}
+
 
 @app.get("/api/manager/export")
 async def export_manager_lms(user: dict = Depends(get_current_user)):
-    """Return LMS-compatible CSV of cohort completions."""
+    """LMS-compatible CSV of cohort completions."""
     from fastapi.responses import Response
-    csv = "name,email,sessions,certs,last_active\n"
-    return Response(content=csv, media_type="text/csv",
-                    headers={"Content-Disposition": "attachment; filename=cohort.csv"})
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    async with AsyncSessionLocal() as pg:
+        rows = (await pg.execute(sa_text("""
+            SELECT
+                COALESCE(u.first_name || ' ' || u.last_name, u.email) AS name,
+                u.email,
+                COUNT(c.id)          AS sessions,
+                SUM(CASE WHEN c.cert_issued THEN 1 ELSE 0 END) AS certs,
+                MAX(c.completed_at)  AS last_active
+            FROM users u
+            LEFT JOIN completions c ON c.user_id = u.id
+            WHERE u.role = 'rep'
+            GROUP BY u.id, u.email, u.first_name, u.last_name
+            ORDER BY name
+        """))).fetchall()
+    lines = ["name,email,sessions,certs,last_active"]
+    for r in rows:
+        last = r.last_active.date().isoformat() if r.last_active else ""
+        lines.append(f'"{r.name.strip()}",{r.email},{r.sessions or 0},{r.certs or 0},{last}')
+    return Response(
+        content="\n".join(lines),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=cohort.csv"},
+    )
+
 
 @app.get("/api/admin/metrics")
 async def get_admin_metrics(user: dict = Depends(get_current_user)):
-    """Return platform-wide metrics for admin dashboard."""
+    """Platform-wide metrics for admin dashboard."""
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    async with AsyncSessionLocal() as pg:
+        m = (await pg.execute(sa_text("""
+            SELECT
+                COUNT(*)                                               AS total_sessions,
+                COUNT(*) FILTER (WHERE completed_at >= NOW() - INTERVAL '30 days') AS sessions_30d,
+                SUM(CASE WHEN cert_issued THEN 1 ELSE 0 END)          AS total_certs,
+                ROUND(
+                    100.0 * SUM(CASE WHEN cert_issued THEN 1 ELSE 0 END)
+                    / NULLIF(COUNT(*), 0)
+                )                                                      AS cert_rate,
+                ROUND(AVG(score))                                      AS avg_score,
+                COUNT(DISTINCT user_id)                                AS unique_reps
+            FROM completions
+        """))).fetchone()
+
+        cost = (await pg.execute(sa_text("""
+            SELECT COALESCE(SUM(cost_usd), 0) AS total_cost
+            FROM metering_events
+            WHERE created_at >= NOW() - INTERVAL '30 days'
+        """))).scalar() or 0
+
+        rep_scores = (await pg.execute(sa_text("""
+            SELECT
+                u.email,
+                COALESCE(u.first_name || ' ' || u.last_name, u.email) AS rep_name,
+                COUNT(c.id)         AS sessions,
+                ROUND(AVG(c.score)) AS avg_score,
+                SUM(CASE WHEN c.cert_issued THEN 1 ELSE 0 END) AS certs
+            FROM completions c
+            JOIN users u ON u.id = c.user_id
+            GROUP BY u.id, u.email, u.first_name, u.last_name
+            ORDER BY avg_score DESC NULLS LAST
+            LIMIT 10
+        """))).fetchall()
+
     return {
-        "sessions_30d": 0,
-        "cost_30d_usd": 0.0,
+        "metrics": {
+            "sessions":   int(m.sessions_30d or 0),
+            "cost_usd":   float(cost),
+            "flagged":    0,
+            "cert_rate":  int(m.cert_rate or 0) if m.cert_rate else None,
+            "avg_score":  int(m.avg_score or 0),
+            "unique_reps": int(m.unique_reps or 0),
+            "total_sessions": int(m.total_sessions or 0),
+            "total_certs": int(m.total_certs or 0),
+        },
         "flagged_sessions": [],
-        "completion_rate_by_cohort": [],
+        "leaderboard": [
+            {
+                "email":    r.email,
+                "rep_name": r.rep_name.strip(),
+                "sessions": int(r.sessions or 0),
+                "avg_score": int(r.avg_score or 0),
+                "certs":    int(r.certs or 0),
+            }
+            for r in rep_scores
+        ],
     }
 
 
