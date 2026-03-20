@@ -124,18 +124,26 @@ export default function DashboardPage() {
                   {scenario.stage_count} stages · {statusLabel(scenario.status)}
                 </p>
               </div>
-              {scenario.status === 'complete' ? (
-                <span className="flex-shrink-0 text-[11px] font-bold text-[#1a7a3f] bg-[#e6f4ea] px-3 py-1.5 rounded-lg">
-                  ✓ Complete
-                </span>
-              ) : (
+              <div className="flex flex-col gap-1.5 flex-shrink-0">
+                {scenario.status === 'complete' ? (
+                  <span className="text-[11px] font-bold text-[#1a7a3f] bg-[#e6f4ea] px-3 py-1.5 rounded-lg text-center">
+                    ✓ Complete
+                  </span>
+                ) : (
+                  <a
+                    href={`/session/new?series=${scenario.id}`}
+                    className="bg-[#0073CF] text-white text-sm px-4 py-2 rounded-lg font-semibold whitespace-nowrap text-center"
+                  >
+                    Practice →
+                  </a>
+                )}
                 <a
-                  href={`/session/new?series=${scenario.id}`}
-                  className="flex-shrink-0 bg-[#0073CF] text-white text-sm px-4 py-2 rounded-lg font-semibold whitespace-nowrap"
+                  href={`/session/new?series=${scenario.id}&mode=demo`}
+                  className="bg-amber-500 text-white text-[11px] px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap text-center"
                 >
-                  Start →
+                  Demo
                 </a>
-              )}
+              </div>
             </div>
           </div>
         )}

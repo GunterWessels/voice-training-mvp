@@ -187,6 +187,35 @@ clinical outcomes at scale, and organizational risk. You want an executive summa
 clear tradeoffs, and a credible plan for adoption.""",
         "avatar": "🏥",
     },
+    "rep_demonstrator": {
+        "id": "rep_demonstrator",
+        "name": "Rep Demonstrator",
+        "description": "AI plays the sales rep — demonstrates correct technique for observers",
+        "prompt": """You are demonstrating how an expert medical device sales rep handles a VAC (Value Analysis Committee) conversation about Tria Ureteral Stents (Boston Scientific).
+
+The human you are speaking with is playing Rachel — a skeptical VAC buyer. You are showing observers (sales reps in training) what good looks like.
+
+YOUR JOB: Generate the rep's side of the conversation, demonstrating expert technique.
+
+FORMAT YOUR RESPONSES AS:
+REP: [What the rep says — conversational, 2-3 sentences max]
+COACH: [One sentence explaining WHY this move works — what technique was used]
+
+TECHNIQUE PRINCIPLES TO DEMONSTRATE:
+- Open with a business question, not a product feature
+- Surface the clinical problem before connecting it to operations and finance (COF chain)
+- Use silence — ask a question and wait
+- Quantify impact before proposing a solution
+- Handle price objections with value, not discounts
+- Earn each stage; never rush to close
+
+RULES:
+- Stay in character as the rep throughout
+- Keep rep lines realistic and conversational — not scripted or perfect
+- Coaching note should be specific to what just happened, not generic
+- Do not break the exercise or reference that this is training""",
+        "avatar": "🎓",
+    },
     "vac_buyer": {
         "id": "vac_buyer",
         "name": "VAC Committee Buyer",
@@ -644,8 +673,12 @@ async def get_series(user: dict = Depends(get_current_user)):
     return {"series": series}
 
 
+class StartSessionRequest(BaseModel):
+    mode: str = "practice"  # "practice" | "demo"
+
+
 @app.post("/api/series/{series_id}/sessions", status_code=201)
-async def start_series_session(series_id: str, user: dict = Depends(get_current_user)):
+async def start_series_session(series_id: str, user: dict = Depends(get_current_user), body: StartSessionRequest = StartSessionRequest()):
     """Create a session from the first scenario in a practice series."""
     import uuid as uuid_mod
     from db import AsyncSessionLocal
@@ -679,17 +712,18 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
         )
 
         session_id = uuid_mod.uuid4()
+        preset = "demo" if body.mode == "demo" else "full_practice"
         pg.add(SessionModel(
             id=session_id,
             user_id=user_uuid,
             scenario_id=uuid_mod.UUID(row.scenario_id),
-            preset="full_practice",
+            preset=preset,
             status="in_progress",
             arc_stage_reached=1,
         ))
         await pg.commit()
 
-    return {"session_id": str(session_id), "scenario_id": row.scenario_id, "persona_id": row.persona_id}
+    return {"session_id": str(session_id), "scenario_id": row.scenario_id, "persona_id": row.persona_id, "mode": body.mode}
 
 
 @app.get("/api/completions")
@@ -826,10 +860,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
     # If PostgreSQL session found but no legacy SQLite session, create a minimal session dict
     if pg_session and not session:
-        # TODO: derive persona_id from pg_session.scenario.persona_id — hardcoded
-        # to vac_buyer for the current BSCI CCE context only. Fix before non-VAC
-        # scenarios are deployed.
-        persona_id = PERSONAS.get("vac_buyer", {}).get("id", "vac_buyer")
+        # Demo mode: AI plays the rep demonstrator; otherwise AI plays vac_buyer
+        if pg_session.preset == "demo":
+            persona_id = PERSONAS.get("rep_demonstrator", {}).get("id", "rep_demonstrator")
+        else:
+            persona_id = PERSONAS.get("vac_buyer", {}).get("id", "vac_buyer")
         session = {
             "session_id": session_id,
             "persona_id": persona_id,
@@ -860,6 +895,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
             base_rag_context["selected_scenario"] = selected_scenario
 
     # Send ready message with persona info and TTS info
+    is_demo = pg_session and pg_session.preset == "demo"
     tts_info = ai_service.tts_service.get_provider_info()
     await websocket.send_json(
         {
@@ -867,6 +903,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
             "persona": persona,
             "session_id": session_id,
             "tts_info": tts_info,
+            "is_demo": bool(is_demo),
             "cartridge": _cartridge_summary(cartridge_id),
             "scenario": _scenario_summary(cartridge_id, scenario_id),
             "active_features": (cartridge_data or {}).get("active_features"),
@@ -1171,11 +1208,28 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 except Exception as _meter_err:
                     logging.warning("metering task dispatch failed: %s", _meter_err)
 
+            # In demo mode, extract COACH: annotation from rep_demonstrator response
+            _raw_text = ai_response["text"]
+            _coaching_note = None
+            if is_demo and "COACH:" in _raw_text:
+                import re as _re
+                _coach_match = _re.search(r"COACH:\s*(.+?)(?:\n|$)", _raw_text, _re.IGNORECASE)
+                if _coach_match:
+                    _coaching_note = _coach_match.group(1).strip()
+                # Strip COACH line from display text
+                _display_text = _re.sub(r"\n?COACH:.*?(?:\n|$)", "", _raw_text, flags=_re.IGNORECASE).strip()
+                # Also strip "REP:" prefix if present
+                _display_text = _re.sub(r"^REP:\s*", "", _display_text, flags=_re.IGNORECASE).strip()
+            else:
+                _display_text = _raw_text
+
             message_data = {
                 "type": "ai_message",
-                "text": ai_response["text"],
+                "text": _display_text,
                 "tts_provider": ai_response["tts_provider"],
             }
+            if _coaching_note:
+                message_data["coaching_note"] = _coaching_note
             _turn_audio_b64 = _extract_audio_b64(ai_response.get("audio"))
             if _turn_audio_b64:
                 message_data["audio_b64"] = _turn_audio_b64

@@ -9,6 +9,7 @@ function SessionNewContent() {
   const router = useRouter()
   const params = useSearchParams()
   const seriesId = params.get('series')
+  const mode = params.get('mode') ?? 'practice'  // 'practice' | 'demo'
 
   useEffect(() => {
     if (!seriesId) { router.replace('/dashboard'); return }
@@ -19,13 +20,14 @@ function SessionNewContent() {
 
       fetch(`${API}/api/series/${seriesId}/sessions`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
       })
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(({ session_id }) => router.replace(`/session/${session_id}?series=${seriesId}`))
+        .then(({ session_id }) => router.replace(`/session/${session_id}?series=${seriesId}&mode=${mode}`))
         .catch(() => router.replace('/dashboard'))
     })
-  }, [seriesId, router])
+  }, [seriesId, mode, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">

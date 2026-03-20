@@ -33,7 +33,7 @@ type AudioState = 'idle' | 'listening' | 'processing' | 'speaking'
 
 interface CofGateState { clinical: boolean; operational: boolean; financial: boolean }
 
-interface Message { role: 'user' | 'ai'; text: string }
+interface Message { role: 'user' | 'ai'; text: string; coachingNote?: string }
 
 interface Props {
   sessionId: string
@@ -52,6 +52,7 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   const [cofGates, setCofGates] = useState<CofGateState>({ clinical: false, operational: false, financial: false })
   const [personaId, setPersonaId] = useState<string>('')
   const [scenarioName, setScenarioName] = useState('')
+  const [isDemo, setIsDemo] = useState(false)
   const [sessionEnded, setSessionEnded] = useState(false)
   const sessionEndedRef = useRef(false)  // stable ref for onclose closure
   const [showOnboarding, setShowOnboarding] = useState(true)
@@ -83,11 +84,16 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
           setError(null)
           setPersonaId((msg.persona as any)?.id ?? '')
           setScenarioName((msg.scenario as any)?.name ?? 'Training Session')
+          if (msg.is_demo) setIsDemo(true)
         }
 
         if (msg.type === 'ai_message') {
           fillerRef.current.cancel()
-          setMessages(prev => [...prev, { role: 'ai', text: msg.text as string }])
+          setMessages(prev => [...prev, {
+            role: 'ai',
+            text: msg.text as string,
+            coachingNote: msg.coaching_note as string | undefined,
+          }])
           if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
           if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
 
@@ -222,18 +228,47 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
 
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 space-y-1">
-        {scenarioName && <p className="text-sm font-medium text-gray-700">{scenarioName}</p>}
-        <ArcProgress currentStage={arcStage} totalStages={6} />
-        <CofGates {...cofGates} />
+        <div className="flex items-center justify-between">
+          {scenarioName && <p className="text-sm font-medium text-gray-700">{scenarioName}</p>}
+          {isDemo && (
+            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase tracking-wider">
+              Demo — AI is the rep
+            </span>
+          )}
+        </div>
+        {!isDemo && <ArcProgress currentStage={arcStage} totalStages={6} />}
+        {!isDemo && <CofGates {...cofGates} />}
+        {isDemo && (
+          <p className="text-[11px] text-gray-400">
+            Speak Rachel's lines. Watch how the rep responds and why.
+          </p>
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((m, i) => (
-          <div key={i} className={`max-w-xs rounded-lg px-4 py-2 text-sm ${
-            m.role === 'user' ? 'ml-auto bg-blue-600 text-white' : 'bg-white border text-gray-800'
-          }`}>
-            {m.text}
+          <div key={i} className={`max-w-xs ${m.role === 'user' ? 'ml-auto' : ''}`}>
+            {/* Role label in demo mode */}
+            {isDemo && (
+              <p className={`text-[9px] font-bold uppercase tracking-wider mb-0.5 ${
+                m.role === 'user' ? 'text-right text-blue-400' : 'text-amber-500'
+              }`}>
+                {m.role === 'user' ? 'Rachel (you)' : 'Rep (AI)'}
+              </p>
+            )}
+            <div className={`rounded-lg px-4 py-2 text-sm ${
+              m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border text-gray-800'
+            }`}>
+              {m.text}
+            </div>
+            {/* Coaching note — demo mode only */}
+            {m.coachingNote && (
+              <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">Coach</p>
+                <p className="text-[11px] text-amber-800">{m.coachingNote}</p>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -244,6 +279,9 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
       {/* Controls */}
       <div className="bg-white border-t p-4 flex flex-col items-center gap-3">
         <AudioStateDisplay state={audioState} />
+        {isDemo && audioState === 'idle' && (
+          <p className="text-[11px] text-amber-600 font-medium">Speak as Rachel</p>
+        )}
         <button
           onClick={startListening}
           disabled={audioState !== 'idle'}
@@ -262,7 +300,7 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
           className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
           aria-label="End session"
         >
-          End Session
+          End {isDemo ? 'Demo' : 'Session'}
         </button>
       </div>
     </div>
