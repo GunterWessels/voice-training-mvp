@@ -60,60 +60,88 @@ export default function VoiceChat({ sessionId, token, apiBase }: Props) {
   const [hint, setHint] = useState<string | null>(null)
   const [debrief, setDebrief] = useState<any | null>(null)
 
-  // Connect to WebSocket
+  // Connect to WebSocket with automatic reconnect (handles Railway proxy idle drops)
   useEffect(() => {
-    const wsBase = apiBase.replace(/^http/, 'ws')
-    const ws = new WebSocket(`${wsBase}/ws/${sessionId}?token=${token}`)
-    wsRef.current = ws
+    let destroyed = false
+    let retryCount = 0
+    const MAX_RETRIES = 5
 
-    ws.onmessage = (event) => {
-      let msg: Record<string, unknown>
-      try { msg = JSON.parse(event.data) } catch { return }
+    function connect() {
+      if (destroyed || sessionEndedRef.current) return
+      const wsBase = apiBase.replace(/^http/, 'ws')
+      const ws = new WebSocket(`${wsBase}/ws/${sessionId}?token=${token}`)
+      wsRef.current = ws
 
-      if (msg.type === 'ready') {
-        setPersonaId((msg.persona as any)?.id ?? '')
-        setScenarioName((msg.scenario as any)?.name ?? 'Training Session')
-      }
+      ws.onmessage = (event) => {
+        let msg: Record<string, unknown>
+        try { msg = JSON.parse(event.data) } catch { return }
 
-      if (msg.type === 'ai_message') {
-        fillerRef.current.cancel()
-        setMessages(prev => [...prev, { role: 'ai', text: msg.text as string }])
-        if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
-        if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
-
-        // Play audio — backend sends field as "audio" (base64 mp3)
-        const audioB64 = (msg.audio_b64 ?? msg.audio) as string | undefined
-        if (audioB64) {
-          setAudioState('speaking')
-          const audioEl = new Audio(`data:audio/mp3;base64,${audioB64}`)
-          audioEl.onended = () => setAudioState('idle')
-          audioEl.play().catch(() => setAudioState('idle'))
-        } else {
-          setAudioState('idle')
+        if (msg.type === 'ready') {
+          retryCount = 0  // successful connection — reset retry counter
+          setError(null)
+          setPersonaId((msg.persona as any)?.id ?? '')
+          setScenarioName((msg.scenario as any)?.name ?? 'Training Session')
         }
 
-        if (msg.session_end) { sessionEndedRef.current = true; setSessionEnded(true) }
+        if (msg.type === 'ai_message') {
+          fillerRef.current.cancel()
+          setMessages(prev => [...prev, { role: 'ai', text: msg.text as string }])
+          if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
+          if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
+
+          // Play audio — backend sends field as "audio" (base64 mp3)
+          const audioB64 = (msg.audio_b64 ?? msg.audio) as string | undefined
+          if (audioB64) {
+            setAudioState('speaking')
+            const audioEl = new Audio(`data:audio/mp3;base64,${audioB64}`)
+            audioEl.onended = () => setAudioState('idle')
+            audioEl.play().catch(() => setAudioState('idle'))
+          } else {
+            setAudioState('idle')
+          }
+
+          if (msg.session_end) { sessionEndedRef.current = true; setSessionEnded(true) }
+        }
+
+        if (msg.type === 'ai_response' && msg.hint) {
+          setHint(msg.hint as string)
+          setTimeout(() => setHint(null), 6000)
+        }
+
+        if (msg.type === 'grading_debrief') {
+          setDebrief(msg.debrief)
+        }
+
+        if (msg.type === 'error') {
+          setError(msg.message as string)
+          setAudioState('idle')
+        }
       }
 
-      if (msg.type === 'ai_response' && msg.hint) {
-        setHint(msg.hint as string)
-        setTimeout(() => setHint(null), 6000)
+      ws.onerror = () => {
+        // onerror always fires before onclose — let onclose handle retry logic
       }
 
-      if (msg.type === 'grading_debrief') {
-        setDebrief(msg.debrief)
-      }
-
-      if (msg.type === 'error') {
-        setError(msg.message as string)
+      ws.onclose = () => {
+        if (destroyed || sessionEndedRef.current) return
         setAudioState('idle')
+        if (retryCount < MAX_RETRIES) {
+          // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 16000)
+          retryCount++
+          setError(`Reconnecting… (attempt ${retryCount}/${MAX_RETRIES})`)
+          setTimeout(connect, delay)
+        } else {
+          setError('Connection lost. Please refresh the page.')
+        }
       }
     }
 
-    ws.onerror = () => setError('Connection error. Please refresh.')
-    ws.onclose = () => { if (!sessionEndedRef.current) setAudioState('idle') }
-
-    return () => ws.close()
+    connect()
+    return () => {
+      destroyed = true
+      wsRef.current?.close()
+    }
   }, [sessionId, token, apiBase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendText = useCallback((text: string) => {

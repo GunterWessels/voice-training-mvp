@@ -17,7 +17,14 @@ _testing = os.environ.get("TESTING", "").lower() in ("1", "true", "yes")
 if _testing:
     engine = create_async_engine(DATABASE_URL, echo=False, poolclass=NullPool)
 else:
-    engine = create_async_engine(DATABASE_URL, echo=False, pool_size=5, max_overflow=10)
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,   # test connection before use — catches stale Railway connections
+        pool_recycle=300,     # recycle connections after 5 min to prevent Railway idle cutoffs
+    )
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 class Base(DeclarativeBase):
