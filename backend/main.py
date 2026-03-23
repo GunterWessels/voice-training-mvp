@@ -958,18 +958,39 @@ async def get_admin_metrics(user: dict = Depends(get_current_user)):
 
 @app.get("/api/auth/check")
 async def auth_check(user: dict = Depends(get_current_user)):
-    """Verify caller's email is in the users allowlist."""
+    """Verify caller's email is in the users allowlist. Auto-promotes ADMIN_EMAILS on first hit."""
     from db import AsyncSessionLocal
     from models import User as UserModel
     from sqlalchemy import select as sa_select
     import uuid as uuid_mod
+
+    email = (user.get("email") or "").lower().strip()
+    admin_emails = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
+
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            sa_select(UserModel).where(UserModel.email == (user.get("email") or "").lower())
+            sa_select(UserModel).where(UserModel.email == email)
         )
         db_user = result.scalar_one_or_none()
+
         if not db_user:
-            raise HTTPException(status_code=403, detail="Not on allowlist")
+            if email in admin_emails:
+                # Auto-create admin user on first authenticated hit
+                db_user = UserModel(
+                    id=str(uuid_mod.uuid4()),
+                    email=email,
+                    role="admin",
+                )
+                session.add(db_user)
+                await session.commit()
+                await session.refresh(db_user)
+            else:
+                raise HTTPException(status_code=403, detail="Not on allowlist")
+        elif email in admin_emails and db_user.role != "admin":
+            # Promote if in ADMIN_EMAILS but role was downgraded
+            db_user.role = "admin"
+            await session.commit()
+
         return {"allowed": True, "role": db_user.role}
 
 
