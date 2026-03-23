@@ -965,7 +965,10 @@ async def auth_check(user: dict = Depends(get_current_user)):
     import uuid as uuid_mod
 
     email = (user.get("email") or "").lower().strip()
-    admin_emails = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
+    # Bootstrap admins: hardcoded + ADMIN_EMAILS env var (union)
+    _bootstrap = {"gunter@liquidsmarts.com"}
+    _env = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
+    admin_emails = _bootstrap | _env
 
     async with AsyncSessionLocal() as session:
         result = await session.execute(
