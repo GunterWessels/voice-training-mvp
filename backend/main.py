@@ -28,6 +28,11 @@ from routers.admin import router as admin_router
 app = FastAPI(title="Voice Training Platform MVP")
 
 
+@app.get("/healthz", include_in_schema=False)
+async def healthz():
+    return {"status": "ok"}
+
+
 @app.on_event("startup")
 async def seed_tria_scenario():
     """Seed Tria Stents scenario JSONB columns if not yet populated."""
@@ -965,16 +970,22 @@ async def auth_check(user: dict = Depends(get_current_user)):
     import uuid as uuid_mod
 
     email = (user.get("email") or "").lower().strip()
+    user_sub = user.get("user_id") or ""
     # Bootstrap admins: hardcoded + ADMIN_EMAILS env var (union)
     _bootstrap = {"gunter@liquidsmarts.com"}
     _env = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
     admin_emails = _bootstrap | _env
 
     async with AsyncSessionLocal() as session:
+        # Try email first; fall back to sub UUID if email claim was empty
         result = await session.execute(
-            sa_select(UserModel).where(UserModel.email == email)
+            sa_select(UserModel).where(UserModel.email == email) if email else
+            sa_select(UserModel).where(UserModel.id == uuid_mod.UUID(user_sub))
         )
         db_user = result.scalar_one_or_none()
+        # Sync email from DB if we found user by UUID
+        if db_user and not email:
+            email = db_user.email
 
         if not db_user:
             if email in admin_emails:

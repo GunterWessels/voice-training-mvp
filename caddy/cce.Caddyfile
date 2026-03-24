@@ -1,0 +1,44 @@
+cce.liquidsmarts.com {
+    # WebSocket traffic — must match before the catch-all reverse proxy
+    handle /ws/* {
+        reverse_proxy localhost:8001 {
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Backend API
+    handle /api/* {
+        reverse_proxy localhost:8001 {
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Next.js frontend
+    handle {
+        reverse_proxy localhost:3002 {
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Security headers
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        # Microphone required for voice simulation
+        Permissions-Policy "camera=(), microphone=(self), geolocation=()"
+        -Server
+    }
+
+    encode gzip
+
+    log {
+        output file /var/log/caddy/cce.access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}

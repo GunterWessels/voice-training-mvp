@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
@@ -9,7 +9,8 @@ function SessionNewContent() {
   const router = useRouter()
   const params = useSearchParams()
   const seriesId = params.get('series')
-  const mode = params.get('mode') ?? 'practice'  // 'practice' | 'demo'
+  const mode = params.get('mode') ?? 'practice'
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!seriesId) { router.replace('/dashboard'); return }
@@ -23,11 +24,27 @@ function SessionNewContent() {
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode }),
       })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(async r => {
+          if (!r.ok) {
+            const body = await r.text().catch(() => r.status.toString())
+            throw new Error(`${r.status}: ${body}`)
+          }
+          return r.json()
+        })
         .then(({ session_id }) => router.replace(`/session/${session_id}?series=${seriesId}&mode=${mode}`))
-        .catch(() => router.replace('/dashboard'))
+        .catch((err: Error) => setError(err.message))
     })
   }, [seriesId, mode, router])
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] gap-3">
+        <p className="text-sm text-red-600 font-medium">Could not start session</p>
+        <p className="text-xs text-[#718096] font-mono max-w-sm text-center">{error}</p>
+        <a href="/dashboard" className="text-xs text-[#0073CF] hover:underline mt-2">← Back to dashboard</a>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">

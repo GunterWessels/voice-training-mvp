@@ -22,7 +22,13 @@ async def get_current_user(
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return {"user_id": user_id, "email": payload.get("email"), "role": payload.get("role", "rep")}
+        # email may be top-level or inside user_metadata (varies by Supabase version)
+        email = (
+            payload.get("email")
+            or (payload.get("user_metadata") or {}).get("email")
+            or ""
+        )
+        return {"user_id": user_id, "email": email, "role": payload.get("role", "rep")}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 

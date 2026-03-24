@@ -1,29 +1,100 @@
-version: '3.9'
+# Production — LiquidSMARTS™ CCE Voice Simulation
+# Caddy container handles TLS and reverse proxy.
+# Backend: internal 8000, exposed as 8001 on host
+# Frontend: internal 3003, exposed as 3003 on host (3002 used by staging)
+# Postgres: internal 5432, not exposed externally
+
 services:
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
+    container_name: cce-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: voice_training
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5432:5432"]
-    volumes: ["postgres_data:/var/lib/postgresql/data"]
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cce_secure_2026}
+    volumes:
+      - cce_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
 
   backend:
-    build: ./backend
-    ports: ["8000:8000"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cce-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    env_file: .env.production
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/voice_training
-    env_file: ./backend/.env
-    depends_on: [db]
-    volumes: ["./backend:/app"]
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --workers 1
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-cce_secure_2026}@db:5432/voice_training
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
 
   frontend:
-    build: ./frontend-next
-    ports: ["3000:3000"]
-    env_file: ./frontend-next/.env.local
-    depends_on: [backend]
+    build:
+      context: ./frontend-next
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+    container_name: cce-frontend
+    restart: unless-stopped
+    expose:
+      - "3002"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
 
 volumes:
-  postgres_data:
+  cce_postgres_data:
+
+networks:
+  app-network:
+    external: true

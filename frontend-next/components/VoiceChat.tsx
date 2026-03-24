@@ -62,6 +62,8 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   fillerRef.current = filler  // keep ref current on every render
   const [hint, setHint] = useState<string | null>(null)
   const [debrief, setDebrief] = useState<any | null>(null)
+  // Coach notes are off by default in practice; toggle on demand
+  const [showCoach, setShowCoach] = useState(false)
 
   // Connect to WebSocket with automatic reconnect (handles Railway proxy idle drops)
   useEffect(() => {
@@ -185,8 +187,16 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   const dismissOnboarding = useCallback(() => setShowOnboarding(false), [])
 
   const endSession = useCallback(() => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
-    wsRef.current.send(JSON.stringify({ type: 'end_session' }))
+    // Stop any playing audio immediately
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    recognitionRef.current?.stop()
+    // Send graceful end if socket is open; otherwise just close
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'end_session' }))
+    }
+    wsRef.current?.close()
+    sessionEndedRef.current = true
+    setSessionEnded(true)
     setAudioState('idle')
   }, [])
 
@@ -230,11 +240,23 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
       <div className="bg-white border-b px-4 py-3 space-y-1">
         <div className="flex items-center justify-between">
           {scenarioName && <p className="text-sm font-medium text-gray-700">{scenarioName}</p>}
-          {isDemo && (
-            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase tracking-wider">
-              Demo — AI is the rep
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isDemo && (
+              <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase tracking-wider">
+                Demo — AI is the rep
+              </span>
+            )}
+            <button
+              onClick={() => setShowCoach(v => !v)}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider transition-colors ${
+                showCoach
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
+              }`}
+            >
+              Coach {showCoach ? 'ON' : 'OFF'}
+            </button>
+          </div>
         </div>
         {!isDemo && <ArcProgress currentStage={arcStage} totalStages={6} />}
         {!isDemo && <CofGates {...cofGates} />}
@@ -262,8 +284,8 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
             }`}>
               {m.text}
             </div>
-            {/* Coaching note — demo mode only */}
-            {m.coachingNote && (
+            {/* Coaching note — visible only when coach is toggled on */}
+            {m.coachingNote && showCoach && (
               <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                 <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">Coach</p>
                 <p className="text-[11px] text-amber-800">{m.coachingNote}</p>
@@ -294,14 +316,24 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
         >
           🎤
         </button>
-        <button
-          onClick={endSession}
-          disabled={audioState !== 'idle'}
-          className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
-          aria-label="End session"
-        >
-          End {isDemo ? 'Demo' : 'Session'}
-        </button>
+        <div className="flex items-center gap-4">
+          {seriesId && (
+            <a
+              href={`/session/new?series=${seriesId}${isDemo ? '&mode=demo' : ''}`}
+              onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null } wsRef.current?.close() }}
+              className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+            >
+              ↺ Restart
+            </a>
+          )}
+          <button
+            onClick={endSession}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+            aria-label="End session"
+          >
+            ✕ End {isDemo ? 'Demo' : 'Session'}
+          </button>
+        </div>
       </div>
     </div>
   )

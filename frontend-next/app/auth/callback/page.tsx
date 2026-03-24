@@ -33,17 +33,12 @@ export default function CallbackPage() {
           if (session) {
             const API = process.env.NEXT_PUBLIC_API_URL ?? ''
             try {
-              const checkRes = await fetch(`${API}/api/auth/check`, {
+              await fetch(`${API}/api/auth/check`, {
                 headers: { Authorization: `Bearer ${session.access_token}` },
               })
-              if (!checkRes.ok) {
-                await supabase.auth.signOut()
-                setErrorMsg('Your email is not on the access list. Contact your program administrator.')
-                setState('error')
-                return
-              }
+              // Fail open — backend enforces per-endpoint auth; don't sign out here.
             } catch {
-              // Network error — fail open so infra issues don't lock users out
+              // Network error — fail open
             }
           }
           await showWelcome(supabase)
