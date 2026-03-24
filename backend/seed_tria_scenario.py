@@ -161,32 +161,46 @@ ARGUMENT_RUBRICS = {
 GRADING_CRITERIA = {
     "dimensions": [
         {
-            "id": "cof_coverage", "weight": 0.35,
+            "id": "cof_coverage", "weight": 0.25,
             "description": "Did rep address clinical, operational, and financial domains with specificity?",
             "full":    "All 3 COF domains addressed with specificity tied to this customer's context",
             "partial": "2 domains addressed OR all 3 superficially",
             "none":    "1 domain only, or feature-dump with no outcomes language"
         },
         {
-            "id": "discovery_quality", "weight": 0.25,
+            "id": "discovery_quality", "weight": 0.20,
             "description": "Did rep ask open-ended questions before presenting solutions?",
             "full":    "3+ open-ended questions; waited for responses before pivoting to solution",
             "partial": "1\u20132 open-ended questions OR mixed open/closed question pattern",
             "none":    "Jumped to solution presentation with no discovery"
         },
         {
-            "id": "argument_coherence", "weight": 0.25,
+            "id": "argument_coherence", "weight": 0.20,
             "description": "Were clinical findings connected to operational and financial consequences?",
             "full":    "Explicit chain: clinical finding \u2192 operational consequence \u2192 financial reality \u2192 solution",
             "partial": "2-part chain present (clinical \u2192 operational OR operational \u2192 financial)",
             "none":    "No chain; isolated claims or feature statements only"
         },
         {
-            "id": "objection_handling", "weight": 0.15,
+            "id": "objection_handling", "weight": 0.10,
             "description": "Did rep address the scripted objection without leading with discount or pressure?",
             "full":    "Empathized, asked, responded with value/trial/data \u2014 no discount language",
             "partial": "Addressed objection but defensively or without empathy step",
             "none":    "Offered discount, conceded on price, ignored objection, or became defensive"
+        },
+        {
+            "id": "spin_questioning", "weight": 0.15,
+            "description": "Did rep progress through SPIN question stages: Situation \u2192 Problem \u2192 Implication \u2192 Need-Payoff?",
+            "full":    "All 4 SPIN stages evident: established current state (S), surfaced the specific problem (P), drew out consequences and impact (I), confirmed the value of solving it (N-P)",
+            "partial": "2\u20133 stages present \u2014 typically S+P without I or N-P; or P+I without confirming payoff",
+            "none":    "No discernible SPIN progression; led with solution or product pitch from the start"
+        },
+        {
+            "id": "challenger_insight", "weight": 0.10,
+            "description": "Did rep challenge the customer's thinking with a commercial insight, tailor it to their situation, and drive toward a specific commitment?",
+            "full":    "Taught something the customer didn\u2019t know (clinical evidence, financial math, or reframe); tailored it to their stated situation; then took control by asking for a specific next step with a timeline",
+            "partial": "Delivered insight but didn\u2019t tailor to customer\u2019s context; or tailored well but closed vaguely without a specific ask",
+            "none":    "No new perspective offered; repeated features or generic claims; closed with \u2018I\u2019ll follow up\u2019 or no ask at all"
         }
     ],
     "debrief_instructions": {
@@ -199,7 +213,18 @@ GRADING_CRITERIA = {
 
 METHODOLOGY = {
     "id": "bsci_sales",
-    "name": "BSCI SALES Framework (Ignite Selling)",
+    "name": "BSCI SALES Framework (Ignite Selling) + SPIN Selling + Challenger Sale",
+    "spin_map": {
+        "S_situation":    "Arc Stage 1 — Ask Discover: understand current state, volume, frequency",
+        "P_problem":      "Arc Stage 2 — Ask Dissect: surface the explicit clinical/operational challenge",
+        "I_implication":  "Arc Stage 3 — COF Probe: draw out consequences (operational \u2192 financial chain)",
+        "NP_need_payoff": "Arc Stage 3-4 — Develop + Listen: confirm value of solving it before presenting solution"
+    },
+    "challenger_map": {
+        "teach":       "Arc Stage 5 — Explain Insights: reveal 3rd-party evidence the customer didn\u2019t have",
+        "tailor":      "Arc Stage 5 — Connect insight to this customer\u2019s specific stated pains (use their language)",
+        "take_control": "Arc Stage 6 — Secure Commitments: drive to specific next action + timeline; no vague follow-up"
+    },
     "steps": [
         {
             "arc_stage": 1, "step_code": "S", "step_name": "Start",

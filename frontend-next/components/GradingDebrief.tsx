@@ -12,9 +12,11 @@ interface Props { debrief: Debrief | null; onDismiss: () => void }
 
 const DIM_LABELS: Record<string, string> = {
   cof_coverage: 'COF Coverage',
-  discovery_quality: 'Discovery',
+  discovery_quality: 'Discovery Quality',
   argument_coherence: 'Argument Coherence',
   objection_handling: 'Objection Handling',
+  spin_questioning: 'SPIN Questioning',
+  challenger_insight: 'Challenger Insight',
 }
 
 export function GradingDebrief({ debrief, onDismiss }: Props) {

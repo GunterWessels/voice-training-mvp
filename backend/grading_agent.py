@@ -16,6 +16,21 @@ def build_grading_prompt(transcript: List[Dict], turn_scores: List[Dict],
     )
     dims = json.dumps(criteria["dimensions"], indent=2)
     instructions = criteria.get("debrief_instructions", {})
+    # Build the JSON format example dynamically from the actual dimension IDs
+    dim_format_lines = ",\n    ".join(
+        f'{{"id": "{d["id"]}", "score": 0-100, "narrative": "2-3 sentences"}}'
+        for d in criteria["dimensions"]
+    )
+    # Include SPIN and Challenger framework context if present in methodology
+    framework_notes = []
+    spin_map = methodology.get("spin_map")
+    challenger_map = methodology.get("challenger_map")
+    if spin_map:
+        framework_notes.append("SPIN QUESTION MAP (for spin_questioning dimension):\n" + json.dumps(spin_map, indent=2))
+    if challenger_map:
+        framework_notes.append("CHALLENGER SALE MAP (for challenger_insight dimension):\n" + json.dumps(challenger_map, indent=2))
+    framework_section = ("\n\n" + "\n\n".join(framework_notes)) if framework_notes else ""
+
     return f"""You are a sales training coach. Grade this voice training session.
 
 TRANSCRIPT:
@@ -28,17 +43,14 @@ GRADING DIMENSIONS:
 
 COF CHAIN EXPECTED: {cof_map.get('cof_connection_statement', 'N/A')}
 
-METHODOLOGY: {methodology.get('name', 'Standard')}
+METHODOLOGY: {methodology.get('name', 'Standard')}{framework_section}
 
 Instructions: {instructions.get('tone', '')}. {instructions.get('format', '')}
 
 Return ONLY valid JSON in this exact format:
 {{
   "dimensions": [
-    {{"id": "cof_coverage", "score": 0-100, "narrative": "2-3 sentences"}},
-    {{"id": "discovery_quality", "score": 0-100, "narrative": "2-3 sentences"}},
-    {{"id": "argument_coherence", "score": 0-100, "narrative": "2-3 sentences"}},
-    {{"id": "objection_handling", "score": 0-100, "narrative": "2-3 sentences"}}
+    {dim_format_lines}
   ],
   "top_strength": "one sentence",
   "top_improvement": "one sentence"
