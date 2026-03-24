@@ -5,7 +5,7 @@ Run via: railway run python3 backend/seed_tria_scenario.py
 """
 import asyncio, json, os
 
-SCENARIO_ID = "bbe7c082-687f-4b62-9b3e-69e1bd87537c"
+SCENARIO_ID = "18438433-9c92-4cac-b8b2-85f729cd43d1"
 
 ARC = {
     "stages": [
