@@ -45,7 +45,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 function CofBadge({ on, label }: { on: boolean; label: string }) {
   return (
     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-      on ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
+      on ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[#31353c] text-[#5f6368]'
     }`}>{label}</span>
   )
 }

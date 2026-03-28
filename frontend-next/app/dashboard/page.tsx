@@ -129,7 +129,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-col gap-1.5 flex-shrink-0">
                 {scenario.status === 'complete' ? (
-                  <span className="text-[11px] font-bold text-[#1a7a3f] bg-[#e6f4ea] px-3 py-1.5 rounded-lg text-center">
+                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/15 px-3 py-1.5 rounded-lg text-center">
                     ✓ Complete
                   </span>
                 ) : (
@@ -173,9 +173,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {/* COF flags */}
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_clinical ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>C</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_operational ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>O</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_financial ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>F</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_clinical ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[#31353c] text-[#5f6368]'}`}>C</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_operational ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[#31353c] text-[#5f6368]'}`}>O</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${s.cof_financial ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[#31353c] text-[#5f6368]'}`}>F</span>
                     {/* Score */}
                     <span className={`text-[13px] font-bold min-w-[36px] text-right ${
                       s.score >= 80 ? 'text-emerald-600' : s.score >= 60 ? 'text-amber-500' : 'text-red-500'

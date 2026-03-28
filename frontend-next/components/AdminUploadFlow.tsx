@@ -153,11 +153,13 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
     closeModal()
   }
 
+  const inputClass = 'rounded-lg px-3 py-2 text-sm w-full bg-[#181c22] text-[#e8eaed] focus:outline-none focus:border-[#2ddbde] focus:ring-2 focus:ring-[#2ddbde]/30'
+
   return (
     <>
       <button
         onClick={openModal}
-        className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8]"
+        className="btn-primary-gradient text-white text-sm font-semibold px-4 py-2 rounded-lg"
       >
         Upload List
       </button>
@@ -165,7 +167,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div
-          className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg space-y-4"
+          className="bg-[#1c2026] rounded-xl shadow-lg p-6 w-full max-w-lg space-y-4"
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="upload-modal-title"
@@ -173,8 +176,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
             {/* STEP 1: IDLE - File picker */}
             {step === 'idle' && (
               <>
-                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#1a202c]">Upload User List</h2>
-                <p className="text-sm text-[#718096]">
+                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#e8eaed]">Upload User List</h2>
+                <p className="text-sm text-[#9aa0a6]">
                   Upload a CSV, Excel, or TSV file with email and name columns.
                 </p>
 
@@ -187,8 +190,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                 />
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-700">{error}</p>
+                  <div className="bg-red-500/15 border border-red-500/30 rounded-lg p-3">
+                    <p className="text-sm text-red-400">{error}</p>
                   </div>
                 )}
 
@@ -196,7 +199,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="border border-[#0073CF] text-[#0073CF] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#f0f7ff]"
+                    className="border-[#2ddbde] text-[#2ddbde] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#353940]"
+                    style={{ border: '1px solid #2ddbde' }}
                   >
                     Cancel
                   </button>
@@ -204,7 +208,7 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={loading}
-                    className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8] disabled:opacity-50"
+                    className="btn-primary-gradient text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
                   >
                     {loading ? 'Parsing…' : 'Upload List'}
                   </button>
@@ -215,21 +219,21 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
             {/* STEP 2: MAPPING - Column mapping + preview */}
             {step === 'mapping' && parseResult && (
               <>
-                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#1a202c]">Map Columns</h2>
-                <p className="text-sm text-[#718096]">
+                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#e8eaed]">Map Columns</h2>
+                <p className="text-sm text-[#9aa0a6]">
                   Assign columns from your file. Total rows: {parseResult.total_rows}
                 </p>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-700">{error}</p>
+                  <div className="bg-red-500/15 border border-red-500/30 rounded-lg p-3">
+                    <p className="text-sm text-red-400">{error}</p>
                   </div>
                 )}
 
                 <div className="space-y-3 max-h-48 overflow-y-auto">
                   {parseResult.headers.map(header => (
                     <div key={header}>
-                      <label className="block text-xs font-semibold text-[#718096] uppercase tracking-wide mb-1">
+                      <label className="block text-xs font-semibold text-[#9aa0a6] uppercase tracking-wide mb-1">
                         {header}
                       </label>
                       <select
@@ -240,7 +244,8 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                             [header]: e.target.value,
                           })
                         }
-                        className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0073CF]/30"
+                        className={inputClass}
+                        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                       >
                         {FIELD_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>
@@ -252,14 +257,14 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                   ))}
                 </div>
 
-                <div className="border border-[#e2e8f0] rounded-lg overflow-hidden">
+                <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+                      <tr className="bg-[#10141a]" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                         {parseResult.headers.map(header => (
                           <th
                             key={header}
-                            className="text-left px-3 py-2 font-semibold text-[#718096]"
+                            className="text-left px-3 py-2 font-semibold text-[#9aa0a6]"
                           >
                             {header}
                           </th>
@@ -268,9 +273,9 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                     </thead>
                     <tbody>
                       {parseResult.preview.slice(0, 5).map((row, idx) => (
-                        <tr key={idx} className="border-b border-[#e2e8f0] hover:bg-[#f8fafc]">
+                        <tr key={idx} className="hover:bg-[#353940] transition-colors" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                           {parseResult.headers.map(header => (
-                            <td key={header} className="px-3 py-2 text-[#1a202c]">
+                            <td key={header} className="px-3 py-2 text-[#e8eaed]">
                               {row[header]}
                             </td>
                           ))}
@@ -285,20 +290,22 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                     type="checkbox"
                     checked={sendInvites}
                     onChange={e => setSendInvites(e.target.checked)}
-                    className="rounded border-[#e2e8f0]"
+                    className="rounded"
+                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                   />
-                  <span className="text-sm text-[#1a202c]">Send magic link invites immediately</span>
+                  <span className="text-sm text-[#e8eaed]">Send magic link invites immediately</span>
                 </label>
 
                 {!emailMapped && (
-                  <p className="text-[12px] text-[#e53e3e]">Map at least one column to Email before importing.</p>
+                  <p className="text-[12px] text-red-400">Map at least one column to Email before importing.</p>
                 )}
 
                 <div className="flex gap-3 justify-end pt-4">
                   <button
                     type="button"
                     onClick={() => setStep('idle')}
-                    className="border border-[#0073CF] text-[#0073CF] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#f0f7ff]"
+                    className="text-[#2ddbde] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#353940]"
+                    style={{ border: '1px solid #2ddbde' }}
                   >
                     Cancel
                   </button>
@@ -306,7 +313,7 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                     type="button"
                     onClick={handleImport}
                     disabled={loading || !emailMapped}
-                    className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8] disabled:opacity-50"
+                    className="btn-primary-gradient text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
                   >
                     {loading ? 'Importing…' : `Import ${parseResult.total_rows} Users`}
                   </button>
@@ -317,18 +324,18 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
             {/* STEP 3: DONE - Results */}
             {step === 'done' && result && (
               <>
-                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#1a202c]">Import Complete</h2>
+                <h2 id="upload-modal-title" className="text-lg font-semibold text-[#e8eaed]">Import Complete</h2>
 
                 <div className="space-y-3">
-                  <div className="bg-[#e6f4ea] rounded-lg p-3">
-                    <div className="text-2xl font-bold text-[#1a7a3f]">{result.created}</div>
-                    <div className="text-sm text-[#1a7a3f] font-medium">Users Created</div>
+                  <div className="bg-emerald-500/15 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-emerald-400">{result.created}</div>
+                    <div className="text-sm text-emerald-400 font-medium">Users Created</div>
                   </div>
 
                   {result.skipped > 0 && (
-                    <div className="bg-[#f8fafc] rounded-lg p-3">
-                      <div className="text-2xl font-bold text-[#718096]">{result.skipped}</div>
-                      <div className="text-sm text-[#718096] font-medium">Users Skipped</div>
+                    <div className="bg-[#31353c] rounded-lg p-3">
+                      <div className="text-2xl font-bold text-[#9aa0a6]">{result.skipped}</div>
+                      <div className="text-sm text-[#9aa0a6] font-medium">Users Skipped</div>
                     </div>
                   )}
                 </div>
@@ -337,7 +344,7 @@ export default function AdminUploadFlow({ authHeader, onImportComplete }: Props)
                   <button
                     type="button"
                     onClick={handleDone}
-                    className="bg-[#0073CF] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#005ba8]"
+                    className="btn-primary-gradient text-white text-sm font-semibold px-4 py-2 rounded-lg"
                   >
                     Done
                   </button>

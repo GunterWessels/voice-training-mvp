@@ -5,9 +5,9 @@ type AudioState = 'idle' | 'listening' | 'processing' | 'speaking'
 interface Props { state: AudioState }
 
 const STATE_CONFIG: Record<AudioState, { label: string; color: string; animation: string }> = {
-  idle:       { label: 'Tap to start',  color: 'text-gray-400',   animation: '' },
+  idle:       { label: 'Tap to start',  color: 'text-[#9aa0a6]',  animation: '' },
   listening:  { label: 'Listening…',   color: 'text-teal-400',   animation: 'animate-pulse' },
-  processing: { label: 'Processing…',  color: 'text-blue-400',   animation: 'animate-spin' },
+  processing: { label: 'Processing…',  color: 'text-[#2ddbde]',  animation: 'animate-spin' },
   speaking:   { label: 'Speaking…',    color: 'text-indigo-400', animation: 'animate-bounce' },
 }
 

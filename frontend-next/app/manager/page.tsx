@@ -107,7 +107,7 @@ export default function ManagerPage() {
                   <td className="px-4 py-3 text-[#9aa0a6] text-sm">{rep.last_active ?? '—'}</td>
                   <td className="px-4 py-3 text-sm">
                     {rep.certified
-                      ? <span className="text-[#1a7a3f] font-bold">✓</span>
+                      ? <span className="text-emerald-400 font-bold">✓</span>
                       : <span className="text-[#5f6368]">—</span>
                     }
                   </td>

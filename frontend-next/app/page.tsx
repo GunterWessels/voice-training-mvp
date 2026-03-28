@@ -17,5 +17,5 @@ export default function RootPage() {
     })
   }, [router])
 
-  return <div className="min-h-screen bg-white" />
+  return <div className="min-h-screen bg-[#10141a]" />
 }
