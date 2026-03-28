@@ -289,12 +289,11 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
               </p>
             )}
             <div
-              className={`rounded-lg px-4 py-2 text-sm ${
+              className={`rounded-lg px-4 py-2 text-sm ghost-border ${
                 m.role === 'user'
                   ? 'bg-[#181c22] text-[#e8eaed]'
                   : 'bg-[#1c2026] text-[#e8eaed]'
               }`}
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
             >
               {m.text}
             </div>
