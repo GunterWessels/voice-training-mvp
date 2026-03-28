@@ -112,7 +112,7 @@ export default function DashboardPage() {
         {/* Scenario card */}
         {scenario && (
           <div
-            className="bg-[#1c2026] rounded-xl p-4 border-l-2 border-[#2ddbde] shadow-[0px_20px_40px_rgba(45,219,222,0.08)]"
+            className="bg-[#1c2026] rounded-xl p-4 shadow-[0px_20px_40px_rgba(45,219,222,0.08)]"
             style={{ border: '1px solid rgba(255,255,255,0.08)', borderLeft: '2px solid #2ddbde' }}
           >
             <div className="flex items-start justify-between gap-3">
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                 ) : (
                   <a
                     href={`/session/new?series=${scenario.id}`}
-                    className="bg-gradient-to-br from-[#2ddbde] to-[#007e80] text-white text-sm px-4 py-2 rounded-lg font-semibold whitespace-nowrap text-center"
+                    className="btn-primary-gradient rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap text-center"
                   >
                     Practice →
                   </a>
