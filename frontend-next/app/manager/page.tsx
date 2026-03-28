@@ -55,39 +55,39 @@ export default function ManagerPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc]">
+    <div className="bg-[#10141a] min-h-screen flex flex-col">
       <CCEHeader />
 
       <main className="flex-1 p-4 space-y-3 max-w-2xl mx-auto w-full">
         {/* Cohort header */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="bg-[#1c2026] rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-[16px] font-bold text-[#1a202c]">Cohort Overview</h1>
-            <span className="text-sm font-bold text-[#0073CF]">
+            <h1 className="text-[16px] font-bold text-[#e8eaed]">Cohort Overview</h1>
+            <span className="text-sm font-bold text-[#2ddbde]">
               {cohort.certified_reps} of {cohort.total_reps} certified
             </span>
           </div>
-          <div className="h-1.5 bg-[#e2e8f0] rounded overflow-hidden mb-3">
+          <div className="h-1.5 bg-[#31353c] rounded overflow-hidden mb-3">
             <div
-              className="h-full bg-[#0073CF] rounded transition-all duration-500"
+              className="h-full bg-[#2ddbde] rounded transition-all duration-500"
               style={{ width: `${certPct}%` }}
             />
           </div>
           <button
             onClick={handleExportCSV}
-            className="text-sm text-[#0073CF] hover:underline"
+            className="text-sm text-[#2ddbde] hover:underline"
           >
             Export CSV
           </button>
         </div>
 
         {/* Rep table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-[#1c2026] rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
           <table className="w-full text-sm">
-            <thead className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+            <thead className="bg-[#10141a]" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
               <tr>
                 {['Name', 'Sessions', 'Last Active', 'Cert'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-[#718096] uppercase tracking-wide">
+                  <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-[#5f6368] font-semibold">
                     {h}
                   </th>
                 ))}
@@ -96,19 +96,19 @@ export default function ManagerPage() {
             <tbody>
               {cohort.reps.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-[#a0aec0]">
+                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-[#5f6368]">
                     No reps enrolled yet.
                   </td>
                 </tr>
               ) : cohort.reps.map(rep => (
-                <tr key={rep.id} className="border-t border-[#e2e8f0]">
-                  <td className="px-4 py-3 text-[#1a202c] font-medium text-sm">{rep.name}</td>
-                  <td className="px-4 py-3 text-[#718096] text-sm">{rep.sessions}</td>
-                  <td className="px-4 py-3 text-[#718096] text-sm">{rep.last_active ?? '—'}</td>
+                <tr key={rep.id} className="hover:bg-[#353940] transition-colors" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <td className="px-4 py-3 text-[#e8eaed] font-medium text-sm">{rep.name}</td>
+                  <td className="px-4 py-3 text-[#9aa0a6] text-sm">{rep.sessions}</td>
+                  <td className="px-4 py-3 text-[#9aa0a6] text-sm">{rep.last_active ?? '—'}</td>
                   <td className="px-4 py-3 text-sm">
                     {rep.certified
                       ? <span className="text-[#1a7a3f] font-bold">✓</span>
-                      : <span className="text-[#a0aec0]">—</span>
+                      : <span className="text-[#5f6368]">—</span>
                     }
                   </td>
                 </tr>

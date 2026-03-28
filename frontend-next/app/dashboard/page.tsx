@@ -87,23 +87,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc]">
+    <div className="bg-[#10141a] min-h-screen flex flex-col">
       <CCEHeader userInitials={initials || undefined} />
 
       <main className="flex-1 p-4 space-y-3 max-w-lg mx-auto w-full">
         {/* Certification Progress */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="bg-[#1c2026] rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-[#718096] uppercase tracking-wide">
+            <span className="text-[10px] uppercase tracking-widest text-[#5f6368] font-semibold">
               Certification Progress
             </span>
-            <span className="text-[11px] font-bold text-[#0073CF]">
+            <span className="text-[11px] font-bold text-[#2ddbde]">
               {completions.certs_earned} / {certsTotal} complete
             </span>
           </div>
-          <div className="h-1.5 bg-[#e2e8f0] rounded overflow-hidden">
+          <div className="h-1.5 bg-[#31353c] rounded overflow-hidden">
             <div
-              className="h-full bg-[#0073CF] rounded transition-all duration-500"
+              className="h-full bg-[#2ddbde] rounded transition-all duration-500"
               style={{ width: `${certPct}%` }}
             />
           </div>
@@ -111,16 +111,19 @@ export default function DashboardPage() {
 
         {/* Scenario card */}
         {scenario && (
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-[#0073CF]">
+          <div
+            className="bg-[#1c2026] rounded-xl p-4 border-l-2 border-[#2ddbde] shadow-[0px_20px_40px_rgba(45,219,222,0.08)]"
+            style={{ border: '1px solid rgba(255,255,255,0.08)', borderLeft: '2px solid #2ddbde' }}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className="text-[10px] font-bold text-[#0073CF] uppercase tracking-widest">
+                <span className="text-[10px] uppercase tracking-widest text-[#5f6368] font-semibold">
                   Required
                 </span>
-                <p className="text-[13px] font-bold text-[#1a202c] mt-0.5 leading-snug">
+                <p className="text-[13px] font-bold text-[#e8eaed] mt-0.5 leading-snug">
                   {scenario.name}
                 </p>
-                <p className="text-[11px] text-[#a0aec0] mt-0.5">
+                <p className="text-[12px] text-[#5f6368] mt-0.5">
                   {scenario.stage_count} stages · {statusLabel(scenario.status)}
                 </p>
               </div>
@@ -132,7 +135,7 @@ export default function DashboardPage() {
                 ) : (
                   <a
                     href={`/session/new?series=${scenario.id}`}
-                    className="bg-[#0073CF] text-white text-sm px-4 py-2 rounded-lg font-semibold whitespace-nowrap text-center"
+                    className="bg-gradient-to-br from-[#2ddbde] to-[#007e80] text-white text-sm px-4 py-2 rounded-lg font-semibold whitespace-nowrap text-center"
                   >
                     Practice →
                   </a>
@@ -150,18 +153,18 @@ export default function DashboardPage() {
 
         {/* Recent Sessions */}
         <div>
-          <p className="text-[10px] font-semibold text-[#a0aec0] uppercase tracking-widest mb-2">
+          <p className="text-[10px] uppercase tracking-widest text-[#5f6368] font-semibold mb-2">
             Recent Sessions
           </p>
-          <div className="bg-white rounded-xl shadow-sm divide-y divide-[#f0f4f8]">
+          <div className="bg-[#1c2026] rounded-xl divide-y divide-[#31353c]" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
             {recentSessions.length === 0 ? (
-              <p className="text-[12px] text-[#a0aec0] text-center py-6">No sessions yet</p>
+              <p className="text-[12px] text-[#5f6368] text-center py-6">No sessions yet</p>
             ) : (
               recentSessions.map((s) => (
-                <div key={s.session_id} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div key={s.session_id} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-[#353940] transition-colors">
                   <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-[#1a202c] truncate">{s.scenario_name}</p>
-                    <p className="text-[10px] text-[#a0aec0] mt-0.5">
+                    <p className="text-[12px] font-semibold text-[#e8eaed] truncate">{s.scenario_name}</p>
+                    <p className="text-[10px] text-[#5f6368] mt-0.5">
                       Stage {s.arc_stage} ·{' '}
                       {s.completed_at
                         ? new Date(s.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -187,19 +190,19 @@ export default function DashboardPage() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-            <p className="text-[18px] font-bold text-[#1a202c]">{completions.sessions_completed}</p>
-            <p className="text-[10px] text-[#718096] mt-0.5">Sessions</p>
+          <div className="bg-[#1c2026] rounded-xl p-3 text-center" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-[24px] font-bold text-[#e8eaed]" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{completions.sessions_completed}</p>
+            <p className="text-[10px] text-[#9aa0a6] mt-0.5">Sessions</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-            <p className="text-[18px] font-bold text-[#1a202c]">
+          <div className="bg-[#1c2026] rounded-xl p-3 text-center" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-[24px] font-bold text-[#e8eaed]" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
               {completions.avg_score > 0 ? completions.avg_score : '—'}
             </p>
-            <p className="text-[10px] text-[#718096] mt-0.5">Avg Score</p>
+            <p className="text-[10px] text-[#9aa0a6] mt-0.5">Avg Score</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-            <p className="text-[18px] font-bold text-[#1a202c]">{completions.certs_earned}</p>
-            <p className="text-[10px] text-[#718096] mt-0.5">Certs</p>
+          <div className="bg-[#1c2026] rounded-xl p-3 text-center" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-[24px] font-bold text-[#e8eaed]" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{completions.certs_earned}</p>
+            <p className="text-[10px] text-[#9aa0a6] mt-0.5">Certs</p>
           </div>
         </div>
       </main>
