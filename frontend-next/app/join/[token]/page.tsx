@@ -36,20 +36,28 @@ export default function JoinPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc]">
+    <div className="min-h-screen flex flex-col bg-[#10141a]">
       <CCEHeader />
 
       <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm w-full max-w-sm p-6">
+        <div
+          className="bg-[#1c2026] rounded-xl w-full max-w-sm p-6 shadow-[0px_20px_40px_rgba(45,219,222,0.08)]"
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+        >
           {!sent ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <h1 className="text-[20px] font-bold text-[#1a202c]">You&apos;ve been invited</h1>
-                <p className="text-[12px] text-[#718096] mt-1">Boston Scientific CCE Program</p>
+                <h1
+                  className="text-[20px] font-bold text-[#e8eaed]"
+                  style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                >
+                  You&apos;ve been invited
+                </h1>
+                <p className="text-[12px] text-[#9aa0a6] mt-0.5">Boston Scientific CCE Program</p>
               </div>
 
-              <div>
-                <label htmlFor="name" className="block text-[11px] font-semibold text-[#4a5568] mb-1">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="name" className="text-[11px] text-[#9aa0a6] font-medium">
                   Full Name
                 </label>
                 <input
@@ -60,12 +68,13 @@ export default function JoinPage({ params }: Props) {
                   onChange={e => setName(e.target.value)}
                   placeholder="Sarah Chen"
                   required
-                  className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0073CF]/30"
+                  className="bg-[#181c22] rounded-lg px-3 py-2 text-sm text-[#e8eaed] placeholder:text-[#5f6368] focus:border-[#2ddbde] focus:outline-none w-full"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                 />
               </div>
 
-              <div>
-                <label htmlFor="email" className="block text-[11px] font-semibold text-[#4a5568] mb-1">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="email" className="text-[11px] text-[#9aa0a6] font-medium">
                   Work Email
                 </label>
                 <input
@@ -76,37 +85,43 @@ export default function JoinPage({ params }: Props) {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="name@bsci.com"
                   required
-                  className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#0073CF]/30"
+                  className="bg-[#181c22] rounded-lg px-3 py-2 text-sm text-[#e8eaed] placeholder:text-[#5f6368] focus:border-[#2ddbde] focus:outline-none w-full"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                 />
               </div>
 
-              {error && <p className="text-red-600 text-xs">{error}</p>}
+              {error && <p className="text-red-500 text-xs">{error}</p>}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#0073CF] text-white rounded-lg py-2.5 text-sm font-semibold disabled:opacity-50"
+                className="btn-primary-gradient rounded-lg py-2.5 text-sm font-semibold w-full disabled:opacity-50"
               >
                 {loading ? 'Joining…' : 'Join the Program →'}
               </button>
 
-              <p className="text-[10px] text-[#a0aec0] text-center">
+              <p className="text-[10px] text-[#5f6368] text-center">
                 No password needed · Powered by LiquidSMARTS™
               </p>
             </form>
           ) : (
             <div className="flex flex-col items-center text-center gap-3 py-4">
-              <div className="w-12 h-12 bg-[#e6f4ea] rounded-full flex items-center justify-center">
+              <div
+                className="w-12 h-12 rounded-full bg-[#181c22] flex items-center justify-center"
+                style={{ border: '1px solid rgba(45,219,222,0.2)' }}
+              >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 6L9 17l-5-5" stroke="#1a7a3f" strokeWidth="2.5"
+                  <path d="M20 6L9 17l-5-5" stroke="#2ddbde" strokeWidth="2.5"
                     strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <h2 className="text-[16px] font-bold text-[#1a202c]">Check your email</h2>
-              <p className="text-[12px] text-[#718096] leading-relaxed">
-                We sent your access link to{' '}
-                <strong className="text-[#1a202c]">{email}</strong>
-              </p>
+              <div className="text-center">
+                <h2 className="text-[16px] font-bold text-[#e8eaed]">Check your email</h2>
+                <p className="text-[12px] text-[#9aa0a6] mt-0.5 leading-relaxed">
+                  We sent your access link to{' '}
+                  <strong className="text-[#e8eaed]">{email}</strong>
+                </p>
+              </div>
             </div>
           )}
         </div>

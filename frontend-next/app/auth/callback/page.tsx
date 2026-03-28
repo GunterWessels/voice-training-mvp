@@ -64,36 +64,36 @@ export default function CallbackPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc]">
+    <div className="min-h-screen flex flex-col bg-[#10141a]">
       <CCEHeader />
 
       <div className="flex-1 flex items-center justify-center px-4">
         {state === 'verifying' && (
           <div className="flex flex-col items-center gap-3">
-            <div className="border-4 border-[#e2e8f0] border-t-[#0073CF] rounded-full w-8 h-8 animate-spin" />
-            <p className="text-[12px] text-[#a0aec0]">Verifying your link…</p>
+            <div className="border-4 border-[#31353c] border-t-[#2ddbde] rounded-full w-8 h-8 animate-spin" />
+            <p className="text-[12px] text-[#9aa0a6]">Verifying your link…</p>
           </div>
         )}
 
         {state === 'welcome' && (
           <div className="flex flex-col items-center text-center gap-3 w-full max-w-xs">
             <div
-              className="w-[52px] h-[52px] bg-[#0073CF] rounded-full flex items-center justify-center"
-              style={{ boxShadow: '0 0 0 6px rgba(0,115,207,0.12)' }}
+              className="w-[52px] h-[52px] bg-[#2ddbde] rounded-full flex items-center justify-center"
+              style={{ boxShadow: '0 0 0 6px rgba(45,219,222,0.12)' }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2.5"
+                <path d="M20 6L9 17l-5-5" stroke="#0a1a1a" strokeWidth="2.5"
                   strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div>
-              <p className="text-[18px] font-extrabold text-[#1a202c]">Welcome, {firstName}.</p>
-              <p className="text-[12px] text-[#718096] mt-1">You&apos;re in the right place.</p>
+              <p className="text-[18px] font-extrabold text-[#e8eaed]">Welcome, {firstName}.</p>
+              <p className="text-[12px] text-[#9aa0a6] mt-1">You&apos;re in the right place.</p>
             </div>
-            <p className="text-[11px] text-[#a0aec0]">Taking you to your dashboard…</p>
-            <div className="w-full h-[3px] bg-[#e2e8f0] rounded overflow-hidden">
+            <p className="text-[11px] text-[#9aa0a6]">Taking you to your dashboard…</p>
+            <div className="w-full h-[3px] bg-[#31353c] rounded overflow-hidden">
               <div
-                className={`h-full bg-[#0073CF] rounded transition-all ease-linear duration-[2000ms] ${animating ? 'w-full' : 'w-0'}`}
+                className={`h-full bg-[#2ddbde] rounded transition-all ease-linear duration-[2000ms] ${animating ? 'w-full' : 'w-0'}`}
               />
             </div>
           </div>
@@ -101,10 +101,10 @@ export default function CallbackPage() {
 
         {state === 'error' && (
           <div className="flex flex-col items-center text-center gap-3">
-            <p className="text-[14px] text-[#1a202c] font-semibold">
+            <p className="text-[14px] text-[#e8eaed] font-semibold">
               {errorMsg || 'This link has expired or already been used.'}
             </p>
-            <Link href="/auth/login" className="text-[13px] text-[#0073CF] hover:underline">
+            <Link href="/auth/login" className="text-[13px] text-[#2ddbde] hover:underline">
               Request a new link →
             </Link>
           </div>
