@@ -10,10 +10,13 @@ export default function ArcProgress({ currentStage, totalStages }: Props) {
           <span
             key={stage}
             role="presentation"
-            className={`w-2.5 h-2.5 rounded-full transition-all ${
-              isActive ? 'bg-blue-500 animate-pulse scale-125' :
-              isPast   ? 'bg-blue-300' : 'bg-gray-300'
-            }`}
+            className={
+              isActive
+                ? 'w-2.5 h-2.5 rounded-full bg-[#2ddbde] shadow-[0_0_8px_rgba(45,219,222,0.6)] animate-pulse'
+                : isPast
+                ? 'w-2 h-2 rounded-full bg-[#2ddbde] opacity-60'
+                : 'w-2 h-2 rounded-full bg-[#31353c]'
+            }
           />
         )
       })}
