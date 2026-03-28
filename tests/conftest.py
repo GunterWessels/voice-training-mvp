@@ -1,10 +1,10 @@
+# tests/conftest.py
 import pytest
 import pytest_asyncio
 import os
 import sys
 from jose import jwt
 from datetime import datetime, timedelta, timezone
-from fastapi.testclient import TestClient
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://localhost/voice_training_test")
 os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
@@ -13,19 +13,20 @@ os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-at-least-32-chars-
 os.environ.setdefault("OPENAI_API_KEY", "sk-test")
 os.environ.setdefault("ELEVENLABS_API_KEY", "test-el-key")
 os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost:3000")
-# NullPool mode: prevents asyncpg event-loop conflicts when TestClient and async fixtures
-# run in different loops during the same pytest session.
 os.environ.setdefault("TESTING", "1")
 
-# Add backend dir to sys.path so that intra-backend imports (ai_service, auth, etc.) resolve.
+# Add backend dir to sys.path so all intra-backend imports resolve via short path.
+# IMPORTANT: import `main`, `models`, `db` WITHOUT the `backend.` prefix everywhere
+# in this conftest and in tests/ — mixing prefixes causes SQLAlchemy double-registration.
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "backend")
 if _backend_dir not in sys.path:
     sys.path.insert(0, os.path.abspath(_backend_dir))
 
-from backend.main import app
+from main import app  # short path — consistent with sys.path.insert above
 
 @pytest.fixture
 def client():
+    from fastapi.testclient import TestClient
     return TestClient(app)
 
 @pytest_asyncio.fixture
@@ -53,8 +54,8 @@ def expired_jwt():
 @pytest_asyncio.fixture
 async def seeded_scenario():
     """Insert a minimal test scenario and return its UUID."""
-    from backend.db import AsyncSessionLocal
-    from backend.models import Scenario, Division
+    from db import AsyncSessionLocal
+    from models import Scenario, Division
     import uuid
     async with AsyncSessionLocal() as db:
         div = Division(name="Test Division", slug=f"test-{uuid.uuid4().hex[:8]}")
@@ -78,14 +79,13 @@ async def seeded_scenario():
 
 @pytest_asyncio.fixture
 async def tria_scenario_id(seeded_scenario):
-    """Alias: returns the scenario UUID string for integration tests."""
     return seeded_scenario["scenario_id"]
 
 @pytest_asyncio.fixture
 async def seeded_metering_session():
-    """Insert a minimal User + Session + 3 MeteringEvents totaling $0.045 and return the session UUID."""
-    from backend.db import AsyncSessionLocal
-    from backend.models import Division, Scenario, User, Session, MeteringEvent
+    """Insert a minimal User + Session + 3 MeteringEvents totaling $0.045."""
+    from db import AsyncSessionLocal
+    from models import Division, Scenario, User, Session, MeteringEvent
     import uuid
     async with AsyncSessionLocal() as db:
         div = Division(name="Metering Test Division", slug=f"metering-{uuid.uuid4().hex[:8]}")

@@ -18,8 +18,8 @@ def sync_seeded_scenario():
     Uses a fresh event loop so it can be consumed by a sync test function.
     """
     import uuid
-    from backend.db import AsyncSessionLocal
-    from backend.models import Scenario, Division
+    from db import AsyncSessionLocal
+    from models import Scenario, Division
 
     async def _seed():
         async with AsyncSessionLocal() as db:
