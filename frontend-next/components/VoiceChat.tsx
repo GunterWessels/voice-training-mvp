@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import ArcProgress from './ArcProgress'
 import AudioStateDisplay from './AudioStateDisplay'
 import CofGates from './CofGates'
+import { SpinGates, ChallengerGates } from './MethodologyGates'
 import { useFillerAudio } from './FillerAudio'
 import OnboardingOverlay from './OnboardingOverlay'
 import { RepHint } from './RepHint'
@@ -50,6 +51,8 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   const [messages, setMessages] = useState<Message[]>([])
   const [arcStage, setArcStage] = useState(0)
   const [cofGates, setCofGates] = useState<CofGateState>({ clinical: false, operational: false, financial: false })
+  const [spinGates, setSpinGates] = useState({ situation: false, problem: false, implication: false, need_payoff: false })
+  const [challengerGates, setChallengerGates] = useState({ teach: false, tailor: false, take_control: false })
   const [personaId, setPersonaId] = useState<string>('')
   const [scenarioName, setScenarioName] = useState('')
   const [isDemo, setIsDemo] = useState(false)
@@ -97,6 +100,8 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
             coachingNote: msg.coaching_note as string | undefined,
           }])
           if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
+          if (msg.spin_gates) setSpinGates(msg.spin_gates as typeof spinGates)
+          if (msg.challenger_gates) setChallengerGates(msg.challenger_gates as typeof challengerGates)
           if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
 
           // Play audio — backend sends field as "audio" (base64 mp3)
@@ -202,26 +207,26 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
 
   if (sessionEnded) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-6">
+      <div className="min-h-screen bg-[#10141a] flex flex-col items-center justify-center p-6 space-y-6">
         {/* Show debrief overlay on top if it arrived */}
         <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
-        <h2 className="text-2xl font-bold text-gray-900">Session Complete</h2>
+        <h2 className="text-2xl font-bold text-[#e8eaed]">Session Complete</h2>
         <CofGates {...cofGates} />
         {!debrief && (
-          <p className="text-gray-500 text-sm">Check your email for results and your certificate if earned.</p>
+          <p className="text-[#9aa0a6] text-sm">Check your email for results and your certificate if earned.</p>
         )}
         <div className="flex flex-col items-center gap-3 pt-2">
           {seriesId && (
             <a
               href={`/session/new?series=${seriesId}`}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
+              className="btn-primary-gradient text-[#0a1a1a] text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors"
             >
               Practice Again
             </a>
           )}
           <a
             href="/dashboard"
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-sm text-[#9aa0a6] hover:text-[#e8eaed] transition-colors"
           >
             Back to Dashboard
           </a>
@@ -231,37 +236,41 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#10141a] flex flex-col">
       {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} />}
       <RepHint hint={hint} />
       <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
 
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 space-y-1">
+      <div className="bg-[#1c2026] border-b border-white/[0.06] px-4 py-3 space-y-1">
         <div className="flex items-center justify-between">
-          {scenarioName && <p className="text-sm font-medium text-gray-700">{scenarioName}</p>}
+          {scenarioName && <p className="text-sm font-medium text-[#e8eaed]">{scenarioName}</p>}
           <div className="flex items-center gap-2">
             {isDemo && (
-              <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase tracking-wider">
+              <span className="text-[10px] font-bold bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded uppercase tracking-wider">
                 Demo — AI is the rep
               </span>
             )}
-            <button
-              onClick={() => setShowCoach(v => !v)}
-              className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider transition-colors ${
-                showCoach
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
-              }`}
-            >
-              Coach {showCoach ? 'ON' : 'OFF'}
-            </button>
+            {!isDemo && (
+              <button
+                onClick={() => setShowCoach(v => !v)}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider transition-colors ${
+                  showCoach
+                    ? 'bg-amber-500/10 text-amber-400'
+                    : 'bg-white/5 text-[#9aa0a6] hover:bg-amber-500/10 hover:text-amber-400'
+                }`}
+              >
+                Coach {showCoach ? 'ON' : 'OFF'}
+              </button>
+            )}
           </div>
         </div>
         {!isDemo && <ArcProgress currentStage={arcStage} totalStages={6} />}
         {!isDemo && <CofGates {...cofGates} />}
+        {!isDemo && <SpinGates {...spinGates} />}
+        {!isDemo && <ChallengerGates {...challengerGates} />}
         {isDemo && (
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-[#9aa0a6]">
             Speak Rachel's lines. Watch how the rep responds and why.
           </p>
         )}
@@ -274,21 +283,26 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
             {/* Role label in demo mode */}
             {isDemo && (
               <p className={`text-[9px] font-bold uppercase tracking-wider mb-0.5 ${
-                m.role === 'user' ? 'text-right text-blue-400' : 'text-amber-500'
+                m.role === 'user' ? 'text-right text-[#2ddbde]' : 'text-amber-400'
               }`}>
                 {m.role === 'user' ? 'Rachel (you)' : 'Rep (AI)'}
               </p>
             )}
-            <div className={`rounded-lg px-4 py-2 text-sm ${
-              m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border text-gray-800'
-            }`}>
+            <div
+              className={`rounded-lg px-4 py-2 text-sm ${
+                m.role === 'user'
+                  ? 'bg-[#181c22] text-[#e8eaed]'
+                  : 'bg-[#1c2026] text-[#e8eaed]'
+              }`}
+              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+            >
               {m.text}
             </div>
             {/* Coaching note — visible only when coach is toggled on */}
             {m.coachingNote && showCoach && (
-              <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">Coach</p>
-                <p className="text-[11px] text-amber-800">{m.coachingNote}</p>
+              <div className="mt-1 rounded-lg px-3 py-2" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <p className="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-0.5 font-mono">Coach</p>
+                <p className="text-[11px] text-[#2ddbde] font-mono">{m.coachingNote}</p>
               </div>
             )}
           </div>
@@ -296,39 +310,51 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
       </div>
 
       {/* Error */}
-      {error && <p className="px-4 text-red-600 text-sm">{error}</p>}
+      {error && <p className="px-4 text-red-400 text-sm">{error}</p>}
 
       {/* Controls */}
-      <div className="bg-white border-t p-4 flex flex-col items-center gap-3">
+      <div
+        className="bg-[#10141a] p-4 flex flex-col items-center gap-3"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      >
         <AudioStateDisplay state={audioState} />
         {isDemo && audioState === 'idle' && (
-          <p className="text-[11px] text-amber-600 font-medium">Speak as Rachel</p>
+          <p className="text-[11px] text-amber-400 font-medium">Speak as Rachel</p>
         )}
         <button
           onClick={startListening}
-          disabled={audioState !== 'idle'}
-          className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
-            audioState === 'idle' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
-            audioState === 'listening' ? 'bg-teal-500 text-white animate-pulse' :
-            'bg-gray-200 text-gray-400'
-          }`}
+          disabled={audioState === 'processing' || audioState === 'speaking'}
+          className="relative w-20 h-20 rounded-full btn-primary-gradient disabled:opacity-40 transition-all duration-200 flex items-center justify-center"
+          style={{
+            boxShadow: audioState === 'listening'
+              ? '0 0 0 12px rgba(45,219,222,0.15), 0 0 0 24px rgba(45,219,222,0.06), inset 0 2px 4px rgba(0,0,0,0.3)'
+              : 'inset 0 2px 4px rgba(0,0,0,0.3)',
+          }}
           aria-label="Start speaking"
         >
-          🎤
+          {audioState === 'processing' ? (
+            <div className="w-6 h-6 rounded-full border-2 border-[#0a1a1a]/40 border-t-[#0a1a1a] animate-spin" />
+          ) : (
+            <svg width="22" height="28" viewBox="0 0 22 28" fill="none">
+              <rect x="6" y="0" width="10" height="18" rx="5" fill="#0a1a1a"/>
+              <path d="M1 14C1 20.075 5.477 25 11 25C16.523 25 21 20.075 21 14" stroke="#0a1a1a" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="11" y1="25" x2="11" y2="28" stroke="#0a1a1a" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          )}
         </button>
         <div className="flex items-center gap-4">
           {seriesId && (
             <a
               href={`/session/new?series=${seriesId}${isDemo ? '&mode=demo' : ''}`}
               onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null } wsRef.current?.close() }}
-              className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+              className="text-xs text-[#9aa0a6] hover:text-[#2ddbde] transition-colors"
             >
               ↺ Restart
             </a>
           )}
           <button
             onClick={endSession}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+            className="text-xs text-[#9aa0a6] hover:text-red-400 transition-colors"
             aria-label="End session"
           >
             ✕ End {isDemo ? 'Demo' : 'Session'}

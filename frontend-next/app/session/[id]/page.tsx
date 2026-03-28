@@ -24,8 +24,8 @@ function SessionContent() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <p className="text-sm text-[#718096]">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#10141a]">
+        <div className="w-8 h-8 rounded-full border-2 border-[#31353c] border-t-[#2ddbde] animate-spin" />
       </div>
     )
   }
@@ -36,8 +36,8 @@ function SessionContent() {
 export default function SessionPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <p className="text-sm text-[#718096]">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#10141a]">
+        <div className="w-8 h-8 rounded-full border-2 border-[#31353c] border-t-[#2ddbde] animate-spin" />
       </div>
     }>
       <SessionContent />

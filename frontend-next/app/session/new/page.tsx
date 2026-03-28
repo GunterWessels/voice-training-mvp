@@ -38,17 +38,20 @@ function SessionNewContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] gap-3">
-        <p className="text-sm text-red-600 font-medium">Could not start session</p>
-        <p className="text-xs text-[#718096] font-mono max-w-sm text-center">{error}</p>
-        <a href="/dashboard" className="text-xs text-[#0073CF] hover:underline mt-2">← Back to dashboard</a>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#10141a] gap-3">
+        <p className="text-sm text-red-500 font-medium">Could not start session</p>
+        <p className="text-xs text-[#9aa0a6] font-mono max-w-sm text-center">{error}</p>
+        <a href="/dashboard" className="text-xs text-[#2ddbde] hover:underline mt-2">← Back to dashboard</a>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-      <p className="text-sm text-[#718096]">Starting session…</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#10141a]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-[#31353c] border-t-[#2ddbde] animate-spin" />
+        <p className="text-sm text-[#9aa0a6]">Starting session…</p>
+      </div>
     </div>
   )
 }
@@ -56,8 +59,8 @@ function SessionNewContent() {
 export default function SessionNewPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <p className="text-sm text-[#718096]">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#10141a]">
+        <div className="w-8 h-8 rounded-full border-2 border-[#31353c] border-t-[#2ddbde] animate-spin" />
       </div>
     }>
       <SessionNewContent />
