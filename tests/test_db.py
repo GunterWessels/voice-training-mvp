@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import text
-from backend.db import engine
+from db import engine
 
 @pytest.mark.asyncio
 async def test_all_tables_exist():

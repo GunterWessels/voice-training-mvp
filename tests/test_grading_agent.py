@@ -16,14 +16,14 @@ SAMPLE_CRITERIA = {
 }
 
 def test_build_grading_prompt_contains_transcript():
-    from backend.grading_agent import build_grading_prompt
+    from grading_agent import build_grading_prompt
     transcript = [{"speaker": "user", "text": "Hello"}, {"speaker": "ai", "text": "Hi"}]
     prompt = build_grading_prompt(transcript, [], SAMPLE_CRITERIA, {}, {})
     assert "Hello" in prompt
     assert "cof_coverage" in prompt
 
 def test_overall_score_is_weighted_average():
-    from backend.grading_agent import compute_overall_score
+    from grading_agent import compute_overall_score
     dimensions = [
         {"id": "cof_coverage", "score": 80},
         {"id": "discovery_quality", "score": 60},

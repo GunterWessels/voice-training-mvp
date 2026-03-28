@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def test_chunk_yaml_file_returns_chunks(tmp_path):
-    from backend.ingestion import chunk_yaml_file
+    from ingestion import chunk_yaml_file
     kb = tmp_path / "knowledge_base.yaml"
     kb.write_text("""
 product_id: test_product
@@ -27,7 +27,7 @@ chunks:
 
 
 def test_chunk_yaml_rejects_empty_content(tmp_path):
-    from backend.ingestion import chunk_yaml_file
+    from ingestion import chunk_yaml_file
     kb = tmp_path / "knowledge_base.yaml"
     kb.write_text("""
 product_id: test_product

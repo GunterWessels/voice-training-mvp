@@ -1,5 +1,5 @@
 import pytest
-from backend.arc_engine import ConditionEvaluator, ArcStageTracker
+from arc_engine import ConditionEvaluator, ArcStageTracker
 
 # --- COF Gate Detection ---
 
