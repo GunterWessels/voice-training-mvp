@@ -257,7 +257,7 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
                 className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider transition-colors ${
                   showCoach
                     ? 'bg-amber-500/10 text-amber-400'
-                    : 'bg-white/5 text-[#9aa0a6] hover:bg-amber-500/10 hover:text-amber-400'
+                    : 'bg-[#31353c]/50 text-[#9aa0a6] hover:bg-amber-500/10 hover:text-amber-400'
                 }`}
               >
                 Coach {showCoach ? 'ON' : 'OFF'}

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 
 const DOMAINS = ['product', 'clinical', 'cof', 'objection', 'compliance', 'stakeholder']
 const DOMAIN_COLORS: Record<string, string> = {
-  product: 'bg-blue-500/15 text-blue-400',
+  product: 'bg-[#2ddbde]/15 text-[#2ddbde]',
   clinical: 'bg-emerald-500/15 text-emerald-400',
   cof: 'bg-amber-500/15 text-amber-400',
   objection: 'bg-purple-500/15 text-purple-400',
@@ -100,7 +100,7 @@ export function KBManageTab({ productId }: { productId: string }) {
                   {chunk.content?.slice(0, 100)}…
                 </td>
                 <td className="px-3 py-2.5 flex gap-3">
-                  <button onClick={() => startEdit(chunk)} className="text-blue-400 hover:text-blue-300">
+                  <button onClick={() => startEdit(chunk)} className="text-[#2ddbde] hover:text-[#2ddbde]/70">
                     Edit
                   </button>
                   <button
