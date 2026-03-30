@@ -150,7 +150,7 @@ async def _log_retrievals(
                 VALUES (
                     gen_random_uuid(),
                     :session_id::uuid,
-                    :chunk_id::uuid,
+                    :chunk_id,
                     :query_text,
                     :session_mode::session_mode_enum,
                     NOW()
