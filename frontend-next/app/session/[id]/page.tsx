@@ -12,6 +12,7 @@ function SessionContent() {
   const router = useRouter()
   const params = useSearchParams()
   const seriesId = params.get('series') ?? undefined
+  const sessionMode = (params.get('mode') === 'certification' ? 'certification' : 'practice') as 'practice' | 'certification'
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
@@ -30,7 +31,15 @@ function SessionContent() {
     )
   }
 
-  return <VoiceChat sessionId={id} token={token} apiBase={API} seriesId={seriesId} />
+  return (
+    <VoiceChat
+      sessionId={id}
+      token={token}
+      apiBase={API}
+      seriesId={seriesId}
+      sessionMode={sessionMode}
+    />
+  )
 }
 
 export default function SessionPage() {

@@ -4,12 +4,14 @@ import ArcProgress from './ArcProgress'
 import AudioStateDisplay from './AudioStateDisplay'
 import CofGates from './CofGates'
 import { SpinGates, ChallengerGates } from './MethodologyGates'
+import { SALESGates, type SalesGateState } from './SALESGates'
+import { PostTurnNote } from './PostTurnNote'
+import { RagCitationList, type RagCitation } from './RagCitationBadge'
 import { useFillerAudio } from './FillerAudio'
 import OnboardingOverlay from './OnboardingOverlay'
 import { RepHint } from './RepHint'
 import { GradingDebrief } from './GradingDebrief'
 
-// Web Speech API — not included in TypeScript's default DOM lib
 interface ISpeechRecognitionEvent extends Event {
   results: { [i: number]: { [j: number]: { transcript: string } } }
 }
@@ -34,41 +36,65 @@ type AudioState = 'idle' | 'listening' | 'processing' | 'speaking'
 
 interface CofGateState { clinical: boolean; operational: boolean; financial: boolean }
 
-interface Message { role: 'user' | 'ai'; text: string; coachingNote?: string }
+interface Message {
+  role: 'user' | 'ai'
+  text: string
+  coachingNote?: string
+  ragCitations?: RagCitation[]
+}
 
 interface Props {
   sessionId: string
   token: string
   apiBase: string
-  seriesId?: string  // passed through for "Practice Again" routing
+  seriesId?: string
+  sessionMode?: 'practice' | 'certification'
 }
 
-export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props) {
+const DEFAULT_SALES_GATES: SalesGateState = {
+  start: false,
+  ask_discover: false,
+  ask_dissect: false,
+  ask_develop: false,
+  listen_recap: false,
+  explain_reveal: false,
+  explain_relate: false,
+  secure_what: false,
+  secure_when: false,
+  resistance_empathize: false,
+  resistance_ask: false,
+  resistance_respond: false,
+}
+
+export default function VoiceChat({ sessionId, token, apiBase, seriesId, sessionMode }: Props) {
   const wsRef = useRef<WebSocket | null>(null)
   const recognitionRef = useRef<ISpeechRecognition | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)  // prevent GC before onended fires
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const [audioState, setAudioState] = useState<AudioState>('idle')
   const [messages, setMessages] = useState<Message[]>([])
   const [arcStage, setArcStage] = useState(0)
   const [cofGates, setCofGates] = useState<CofGateState>({ clinical: false, operational: false, financial: false })
   const [spinGates, setSpinGates] = useState({ situation: false, problem: false, implication: false, need_payoff: false })
   const [challengerGates, setChallengerGates] = useState({ teach: false, tailor: false, take_control: false })
+  const [salesGates, setSalesGates] = useState<SalesGateState>(DEFAULT_SALES_GATES)
   const [personaId, setPersonaId] = useState<string>('')
   const [scenarioName, setScenarioName] = useState('')
   const [isDemo, setIsDemo] = useState(false)
   const [sessionEnded, setSessionEnded] = useState(false)
-  const sessionEndedRef = useRef(false)  // stable ref for onclose closure
+  const sessionEndedRef = useRef(false)
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const filler = useFillerAudio({ personaId: personaId || 'default' })
   const fillerRef = useRef(filler)
-  fillerRef.current = filler  // keep ref current on every render
+  fillerRef.current = filler
   const [hint, setHint] = useState<string | null>(null)
   const [debrief, setDebrief] = useState<any | null>(null)
-  // Coach notes are off by default in practice; toggle on demand
   const [showCoach, setShowCoach] = useState(false)
+  const [postTurnNote, setPostTurnNote] = useState<string | null>(null)
+  const [resolvedMode, setResolvedMode] = useState<'practice' | 'certification' | undefined>(sessionMode)
 
-  // Connect to WebSocket with automatic reconnect (handles Railway proxy idle drops)
+  const isCertification = resolvedMode === 'certification'
+
   useEffect(() => {
     let destroyed = false
     let retryCount = 0
@@ -85,31 +111,42 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
         try { msg = JSON.parse(event.data) } catch { return }
 
         if (msg.type === 'ready') {
-          retryCount = 0  // successful connection — reset retry counter
+          retryCount = 0
           setError(null)
           setPersonaId((msg.persona as any)?.id ?? '')
           setScenarioName((msg.scenario as any)?.name ?? 'Training Session')
           if (msg.is_demo) setIsDemo(true)
+          if (msg.session_mode === 'certification' || msg.session_mode === 'practice') {
+            setResolvedMode(msg.session_mode as 'practice' | 'certification')
+          }
         }
 
         if (msg.type === 'ai_message') {
           fillerRef.current.cancel()
+          const rawCitations = msg.rag_citations as RagCitation[] | undefined
+          const citations: RagCitation[] | undefined = Array.isArray(rawCitations) ? rawCitations : undefined
+
           setMessages(prev => [...prev, {
             role: 'ai',
             text: msg.text as string,
             coachingNote: msg.coaching_note as string | undefined,
+            ragCitations: citations,
           }])
           if (msg.cof_gates) setCofGates(msg.cof_gates as CofGateState)
           if (msg.spin_gates) setSpinGates(msg.spin_gates as typeof spinGates)
           if (msg.challenger_gates) setChallengerGates(msg.challenger_gates as typeof challengerGates)
+          if (msg.sales_gates) setSalesGates(msg.sales_gates as SalesGateState)
+
+          const ptn = msg.post_turn_note as string | undefined
+          if (ptn && ptn.trim()) setPostTurnNote(ptn)
+
           if (typeof msg.arc_stage === 'number') setArcStage(msg.arc_stage)
 
-          // Play audio — backend sends field as "audio" (base64 mp3)
           const audioB64 = (msg.audio_b64 ?? msg.audio) as string | undefined
           if (audioB64) {
             setAudioState('speaking')
             const audioEl = new Audio(`data:audio/mp3;base64,${audioB64}`)
-            audioRef.current = audioEl  // hold ref to prevent GC before onended fires
+            audioRef.current = audioEl
             audioEl.onended = () => { audioRef.current = null; setAudioState('idle') }
             audioEl.play().catch(() => { audioRef.current = null; setAudioState('idle') })
           } else {
@@ -134,18 +171,15 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
         }
       }
 
-      ws.onerror = () => {
-        // onerror always fires before onclose — let onclose handle retry logic
-      }
+      ws.onerror = () => { /* let onclose handle */ }
 
       ws.onclose = () => {
         if (destroyed || sessionEndedRef.current) return
         setAudioState('idle')
         if (retryCount < MAX_RETRIES) {
-          // Exponential backoff: 1s, 2s, 4s, 8s, 16s
           const delay = Math.min(1000 * Math.pow(2, retryCount), 16000)
           retryCount++
-          setError(`Reconnecting… (attempt ${retryCount}/${MAX_RETRIES})`)
+          setError(`Reconnecting... (attempt ${retryCount}/${MAX_RETRIES})`)
           setTimeout(connect, delay)
         } else {
           setError('Connection lost. Please refresh the page.')
@@ -192,10 +226,8 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   const dismissOnboarding = useCallback(() => setShowOnboarding(false), [])
 
   const endSession = useCallback(() => {
-    // Stop any playing audio immediately
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
     recognitionRef.current?.stop()
-    // Send graceful end if socket is open; otherwise just close
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'end_session' }))
     }
@@ -208,7 +240,6 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   if (sessionEnded) {
     return (
       <div className="min-h-screen bg-[#10141a] flex flex-col items-center justify-center p-6 space-y-6">
-        {/* Show debrief overlay on top if it arrived */}
         <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
         <h2 className="text-2xl font-bold text-[#e8eaed]">Session Complete</h2>
         <CofGates {...cofGates} />
@@ -224,10 +255,7 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
               Practice Again
             </a>
           )}
-          <a
-            href="/dashboard"
-            className="text-sm text-[#9aa0a6] hover:text-[#e8eaed] transition-colors"
-          >
+          <a href="/dashboard" className="text-sm text-[#9aa0a6] hover:text-[#e8eaed] transition-colors">
             Back to Dashboard
           </a>
         </div>
@@ -236,7 +264,10 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
   }
 
   return (
-    <div className="min-h-screen bg-[#10141a] flex flex-col">
+    <div
+      className="min-h-screen bg-[#10141a] flex flex-col"
+      style={isCertification ? { outline: '1px solid rgba(251,191,36,0.3)' } : undefined}
+    >
       {showOnboarding && <OnboardingOverlay onDismiss={dismissOnboarding} />}
       <RepHint hint={hint} />
       <GradingDebrief debrief={debrief} onDismiss={() => setDebrief(null)} />
@@ -244,11 +275,21 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
       {/* Header */}
       <div className="bg-[#1c2026] border-b border-white/[0.06] px-4 py-3 space-y-1">
         <div className="flex items-center justify-between">
-          {scenarioName && <p className="text-sm font-medium text-[#e8eaed]">{scenarioName}</p>}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {scenarioName && <p className="text-sm font-medium text-[#e8eaed] truncate">{scenarioName}</p>}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {isCertification && (
+              <span
+                className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"
+                style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}
+              >
+                Certification Session
+              </span>
+            )}
             {isDemo && (
               <span className="text-[10px] font-bold bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded uppercase tracking-wider">
-                Demo — AI is the rep
+                Demo -- AI is the rep
               </span>
             )}
             {!isDemo && (
@@ -269,9 +310,10 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
         {!isDemo && <CofGates {...cofGates} />}
         {!isDemo && <SpinGates {...spinGates} />}
         {!isDemo && <ChallengerGates {...challengerGates} />}
+        {!isDemo && <SALESGates {...salesGates} />}
         {isDemo && (
           <p className="text-[11px] text-[#9aa0a6]">
-            Speak Rachel's lines. Watch how the rep responds and why.
+            {"Speak Rachel's lines. Watch how the rep responds and why."}
           </p>
         )}
       </div>
@@ -280,7 +322,6 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((m, i) => (
           <div key={i} className={`max-w-xs ${m.role === 'user' ? 'ml-auto' : ''}`}>
-            {/* Role label in demo mode */}
             {isDemo && (
               <p className={`text-[9px] font-bold uppercase tracking-wider mb-0.5 ${
                 m.role === 'user' ? 'text-right text-[#2ddbde]' : 'text-amber-400'
@@ -295,9 +336,11 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
                   : 'bg-[#1c2026] text-[#e8eaed]'
               }`}
             >
-              {m.text}
+              <span>{m.text}</span>
+              {m.role === 'ai' && m.ragCitations && m.ragCitations.length > 0 && (
+                <RagCitationList citations={m.ragCitations} />
+              )}
             </div>
-            {/* Coaching note — visible only when coach is toggled on */}
             {m.coachingNote && showCoach && (
               <div className="mt-1 rounded-lg px-3 py-2" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                 <p className="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-0.5 font-mono">Coach</p>
@@ -307,6 +350,9 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
           </div>
         ))}
       </div>
+
+      {/* Post-turn note */}
+      <PostTurnNote note={postTurnNote} />
 
       {/* Error */}
       {error && <p className="px-4 text-red-400 text-sm">{error}</p>}
@@ -348,7 +394,7 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
               onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null } wsRef.current?.close() }}
               className="text-xs text-[#9aa0a6] hover:text-[#2ddbde] transition-colors"
             >
-              ↺ Restart
+              Restart
             </a>
           )}
           <button
@@ -356,7 +402,7 @@ export default function VoiceChat({ sessionId, token, apiBase, seriesId }: Props
             className="text-xs text-[#9aa0a6] hover:text-red-400 transition-colors"
             aria-label="End session"
           >
-            ✕ End {isDemo ? 'Demo' : 'Session'}
+            End {isDemo ? 'Demo' : 'Session'}
           </button>
         </div>
       </div>
