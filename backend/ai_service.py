@@ -416,6 +416,84 @@ class AIService:
         except Exception:
             return None
 
+    async def post_turn_coaching(
+        self,
+        rep_text: str,
+        conversation_history: list,
+        active_gates: dict,
+        session_mode: str,
+    ) -> str:
+        """Return a single short coaching sentence (max 12 words) on the rep's last turn.
+
+        Returns an empty string if the rep's turn is strong across all active gates.
+        For certification sessions the coaching note is still generated (caller marks cert_mode).
+        """
+        if self.provider == "mock":
+            return self._mock_post_turn_coaching(rep_text, active_gates)
+
+        gates_summary = ", ".join(
+            f"{k}={'YES' if v else 'NO'}" for k, v in active_gates.items()
+        )
+
+        system_prompt = (
+            "You are a concise sales coaching AI for medical device reps. "
+            "Given the rep's last statement and the current SALES framework gate states, "
+            "produce ONE coaching sentence of at most 12 words. "
+            "The sentence must be actionable and specific to the next missing gate. "
+            "If the rep's turn is strong and all critical gates are met, return an empty string. "
+            "Return ONLY the sentence or an empty string — no other text."
+        )
+
+        recent_history = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
+        history_text = "\n".join(
+            f"{m.get('speaker', '?').upper()}: {m.get('text', '')}" for m in recent_history
+        )
+
+        user_prompt = (
+            f"Rep's last statement: \"{rep_text}\"\n\n"
+            f"Recent conversation:\n{history_text}\n\n"
+            f"SALES gate states: {gates_summary}\n\n"
+            "Coaching note (max 12 words, or empty string):"
+        )
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        try:
+            raw = await self._call_provider(messages=messages, max_tokens=40, temperature=0.3)
+            coaching = raw.strip().strip('"').strip("'")
+            # Truncate to 12 words as a safety net
+            words = coaching.split()
+            if len(words) > 12:
+                coaching = " ".join(words[:12])
+            return coaching
+        except Exception as exc:
+            import logging as _logging
+            _logging.warning("post_turn_coaching API call failed: %s", exc)
+            return ""
+
+    def _mock_post_turn_coaching(self, rep_text: str, active_gates: dict) -> str:
+        """Deterministic mock coaching for test / no-API environments."""
+        if not active_gates.get("start"):
+            return "Open with a customer-focused purpose statement."
+        if not active_gates.get("ask_discover"):
+            return "Ask a Discover question about their current challenges."
+        if active_gates.get("ask_discover") and not active_gates.get("ask_dissect"):
+            return "Good Discover question — now push into consequences with a Dissect."
+        if active_gates.get("ask_dissect") and not active_gates.get("listen_recap"):
+            return "Strong Dissect. Recap what you heard before moving forward."
+        if active_gates.get("listen_recap") and not active_gates.get("explain_reveal"):
+            return "Ready to share clinical evidence — move into the Explain phase."
+        if active_gates.get("explain_reveal") and not active_gates.get("explain_relate"):
+            return "You revealed clinical evidence but haven't related it back to their challenge."
+        if active_gates.get("explain_relate") and not active_gates.get("secure_what"):
+            return "Strong Explain. Ask for a specific next step now."
+        if active_gates.get("secure_what") and not active_gates.get("secure_when"):
+            return "Name a specific timeline for that next step."
+        return ""
+
     def _generate_mock_turn(
         self,
         persona: Dict,
