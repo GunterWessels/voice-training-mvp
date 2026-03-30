@@ -1,16 +1,17 @@
 # Frontend Agent -- Phase 1 Status
 
-**Date**: 2026-03-30
+**Date**: 2026-03-30 (security fix: 2026-03-30)
 **Branch**: feat/v2-frontend
 **Build**: PASS (npm run build, 0 type errors, 12 routes)
 
 ## What Was Built
 
-### proxy.ts (replaces middleware.ts)
+### middleware.ts (BLOCK-1 security fix)
+- File: `frontend-next/middleware.ts`, exported function: `middleware` -- correct Next.js edge middleware convention
 - Role-based routing: rep to /dashboard, trainer/manager to /admin, admin to /super
 - Unauthenticated redirects to /auth/login with `next=` param
 - 403 HTML response (not redirect) when role is insufficient for /admin or /super
-- Deleted old middleware.ts which conflicted with Next.js 16 proxy convention
+- Note: Next.js 16 emits a deprecation warning pointing to `proxy.ts` as the new canonical form, but the `middleware` export runs correctly as edge middleware in all Next.js versions. Per security review (BLOCK-1), using `middleware.ts` + `middleware` export.
 
 ### Dashboard -- app/dashboard/page.tsx
 - Today's Assignment hero card with teal left border, Begin Session CTA, or Practice Freely fallback
@@ -62,6 +63,7 @@ The following VoiceChat fields are wired with defensive checks but not yet testa
 - `post_turn_note` (string) -- PostTurnNote renders, auto-dismisses, stays silent until field arrives
 - `rag_citations` (RagCitation[]) -- RagCitationList renders inline, stays hidden until field arrives
 - `session_mode` in `ready` message -- resolvedMode falls back to URL param until backend confirms
+  - ADV-3: once backend writes session_mode to GET /api/sessions/{id} response, VoiceChat and the debrief page should read it from that endpoint rather than the URL param. Certification amber border must not render based on URL param alone -- wait for the backend session object.
 
 Backend also needs:
 - GET /api/sessions/{id}/debrief endpoint (debrief page calls this)
@@ -70,6 +72,5 @@ Backend also needs:
 - DELETE /api/uploads/{id} endpoint
 
 ## Deviations from Spec
-- None. All spec items implemented as described.
-- proxy.ts used instead of middleware.ts per Next.js 16 convention (middleware.ts deleted).
+- middleware.ts uses `middleware` export per security review BLOCK-1. Next.js 16 emits a deprecation warning (proxy.ts is the new canonical) but the export runs correctly as edge middleware.
 - SALESGates resistance phase labeled "Res." in phase header to fit compact layout.
