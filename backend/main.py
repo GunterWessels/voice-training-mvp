@@ -49,8 +49,23 @@ async def seed_tria_scenario():
                 _t("SELECT arc FROM scenarios WHERE id = :sid"),
                 {"sid": SCENARIO_ID}
             )).fetchone()
-            if not row or row.arc:
-                return  # not found, or already seeded
+            if not row:
+                # Ensure a division row exists (required FK on scenarios)
+                DIVISION_ID = "a1b2c3d4-0000-0000-0000-000000000001"
+                await _pg.execute(_t("""
+                    INSERT INTO divisions (id, name, slug)
+                    VALUES (:did, 'Endo Urology', 'endo-urology')
+                    ON CONFLICT (id) DO NOTHING
+                """), {"did": DIVISION_ID})
+                # Insert the scenario row (arc seeded below)
+                await _pg.execute(_t("""
+                    INSERT INTO scenarios (id, name, division_id, persona_id, arc, is_active)
+                    VALUES (:sid, 'Tria Stents — Urology', :did, 'urologist', '{}'::jsonb, true)
+                    ON CONFLICT (id) DO NOTHING
+                """), {"sid": SCENARIO_ID, "did": DIVISION_ID})
+                await _pg.commit()
+            elif row.arc and row.arc != {}:
+                return  # already fully seeded
 
         # Import seed data from companion module (avoids large inline dict)
         import importlib, sys, os
@@ -556,9 +571,16 @@ async def join_cohort(body: JoinRequest):
 
 class ApiSessionCreate(BaseModel):
     persona_id: str
-    scenario_id: str  # UUID string of the PostgreSQL scenario row
+    # scenario_id defaults to the Tria Stents scenario seeded at startup
+    scenario_id: str = "bbe7c082-687f-4b62-9b3e-69e1bd87537c"
     preset: str = "full_practice"
     session_mode: str = "practice"  # "practice" | "certification"
+    # Accept "mode" sent by the frontend as an alias for session_mode
+    mode: Optional[str] = None
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.mode and self.session_mode == "practice":
+            self.session_mode = self.mode
 
 
 @app.post("/api/sessions", status_code=201)
