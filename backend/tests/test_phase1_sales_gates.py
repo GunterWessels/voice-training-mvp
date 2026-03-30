@@ -349,3 +349,70 @@ async def test_admin_role_can_access_admin_sessions():
             resp = await ac.get("/api/admin/sessions")
     # 200 or 500 (DB mock) — either way it passed the role check; 403 means role enforcement failed
     assert resp.status_code != 403
+
+
+# ── ADV-4: DB-lookup fallback when JWT carries Supabase default role ──────────
+
+@pytest.mark.asyncio
+async def test_adv4_supabase_authenticated_role_triggers_db_lookup():
+    """JWT role='authenticated' (Supabase default) must fall back to DB lookup."""
+    from auth import get_current_user, _APP_ROLES
+    from unittest.mock import patch, AsyncMock, MagicMock
+
+    token = make_token({"sub": "trainer-user-id", "role": "authenticated"})
+
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.fetchone.return_value = ("trainer",)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    # _lookup_role does `from db import AsyncSessionLocal` then `async with AsyncSessionLocal()`
+    with patch("db.AsyncSessionLocal", return_value=mock_session):
+        from fastapi.security import HTTPAuthorizationCredentials
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        user = await get_current_user(credentials=creds)
+
+    assert user["role"] == "trainer"
+    assert "authenticated" not in _APP_ROLES
+
+
+@pytest.mark.asyncio
+async def test_adv4_db_lookup_unknown_user_defaults_to_rep():
+    """If user not found in DB during lookup, default role is 'rep'."""
+    from auth import get_current_user
+    from unittest.mock import patch, AsyncMock, MagicMock
+
+    token = make_token({"sub": "new-user-id", "role": "authenticated"})
+
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.fetchone.return_value = None  # user not in users table yet
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    with patch("db.AsyncSessionLocal", return_value=mock_session):
+        from fastapi.security import HTTPAuthorizationCredentials
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        user = await get_current_user(credentials=creds)
+
+    assert user["role"] == "rep"
+
+
+@pytest.mark.asyncio
+async def test_adv4_explicit_app_role_in_jwt_skips_db_lookup():
+    """If JWT already carries a valid app role, DB lookup must NOT fire."""
+    from auth import get_current_user
+    from unittest.mock import patch, MagicMock
+
+    token = make_token({"sub": "admin-user-id", "role": "admin"})
+
+    with patch("db.AsyncSessionLocal") as mock_ctor:
+        from fastapi.security import HTTPAuthorizationCredentials
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        user = await get_current_user(credentials=creds)
+
+    mock_ctor.assert_not_called()
+    assert user["role"] == "admin"
