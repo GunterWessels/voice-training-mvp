@@ -17,15 +17,18 @@ _APP_ROLES = {"rep", "trainer", "manager", "admin"}
 security = HTTPBearer(auto_error=False)
 
 async def _lookup_role(user_id: str) -> str:
-    """Fetch the application role from the users table. Returns 'rep' if not found."""
-    from db import AsyncSessionLocal
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            text("SELECT role FROM users WHERE id = :uid LIMIT 1"),
-            {"uid": user_id},
-        )
-        row = result.fetchone()
-        return row[0] if row else "rep"
+    """Fetch the application role from the users table. Returns 'rep' if not found or DB unreachable."""
+    try:
+        from db import AsyncSessionLocal
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                text("SELECT role FROM users WHERE id = :uid LIMIT 1"),
+                {"uid": user_id},
+            )
+            row = result.fetchone()
+            return row[0] if row else "rep"
+    except Exception:
+        return "rep"
 
 async def _verify_token_remote(token: str) -> dict:
     """Verify JWT by calling Supabase Auth API. Returns user payload dict."""
