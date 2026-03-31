@@ -710,57 +710,68 @@ async def create_api_session(
     body: ApiSessionCreate,
     user: dict = Depends(get_current_user),
 ):
-    """Create a PostgreSQL-backed training session (production path)."""
+    """Create a PostgreSQL-backed training session via Supabase PostgREST (bypasses asyncpg pooler)."""
     import uuid as uuid_mod
-    from db import AsyncSessionLocal
-    from models import Session as SessionModel, Scenario as ScenarioModel, User as UserModel
-    from sqlalchemy import select
-    from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-    async with AsyncSessionLocal() as pg:
-        result = await pg.execute(
-            select(ScenarioModel).where(ScenarioModel.id == uuid_mod.UUID(body.scenario_id))
+    _supa_url = os.environ.get("SUPABASE_URL", "")
+    _svc_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    _hdrs = {
+        "apikey": _svc_key,
+        "Authorization": f"Bearer {_svc_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        user_uuid = str(uuid_mod.UUID(user["user_id"]))
+    except (ValueError, AttributeError):
+        user_uuid = str(uuid_mod.uuid5(uuid_mod.NAMESPACE_DNS, str(user["user_id"])))
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        # Validate scenario exists and get its default persona_id
+        sc_resp = await client.get(
+            f"{_supa_url}/rest/v1/scenarios",
+            params={"id": f"eq.{body.scenario_id}", "select": "id,persona_id"},
+            headers=_hdrs,
         )
-        scenario = result.scalar_one_or_none()
-        if not scenario:
+        sc_rows = sc_resp.json() if sc_resp.status_code == 200 else []
+        if not sc_rows:
             raise HTTPException(status_code=404, detail="Scenario not found")
-
-        # user_id from JWT may not be a valid UUID in test environments — fall back to a
-        # deterministic UUID derived from the sub string so the DB constraint is satisfied.
-        try:
-            user_uuid = uuid_mod.UUID(user["user_id"])
-        except (ValueError, AttributeError):
-            user_uuid = uuid_mod.uuid5(uuid_mod.NAMESPACE_DNS, str(user["user_id"]))
-
-        # Ensure the user row exists (upsert) so the FK on sessions.user_id is satisfied
-        await pg.execute(
-            pg_insert(UserModel)
-            .values(
-                id=user_uuid,
-                email=user.get("email") or f"{user_uuid}@unknown.internal",
-                role=user.get("role", "rep"),
-            )
-            .on_conflict_do_nothing(index_elements=["id"])
-        )
+        scenario_persona = sc_rows[0].get("persona_id") or "vac_buyer"
 
         # Validate persona_id — fall back to scenario default if not in PERSONAS
-        persona_id = body.persona_id if body.persona_id in PERSONAS else (scenario.persona_id or "vac_buyer")
+        persona_id = body.persona_id if body.persona_id in PERSONAS else scenario_persona
 
-        session_id = uuid_mod.uuid4()
-        pg_session = SessionModel(
-            id=session_id,
-            user_id=user_uuid,
-            scenario_id=scenario.id,
-            preset=body.preset,
-            status="in_progress",
-            arc_stage_reached=1,
-            session_mode=body.session_mode,
-            persona_id=persona_id,
+        # Upsert user row so sessions.user_id FK is satisfied
+        await client.post(
+            f"{_supa_url}/rest/v1/users",
+            headers={**_hdrs, "Prefer": "resolution=ignore-duplicates,return=minimal"},
+            json={
+                "id": user_uuid,
+                "email": user.get("email") or f"{user_uuid}@unknown.internal",
+                "role": user.get("role", "rep"),
+            },
         )
-        pg.add(pg_session)
-        await pg.commit()
 
-    return {"session_id": str(session_id)}
+        session_id = str(uuid_mod.uuid4())
+        sr = await client.post(
+            f"{_supa_url}/rest/v1/sessions",
+            headers={**_hdrs, "Prefer": "return=minimal"},
+            json={
+                "id": session_id,
+                "user_id": user_uuid,
+                "scenario_id": body.scenario_id,
+                "preset": body.preset,
+                "status": "in_progress",
+                "arc_stage_reached": 1,
+                "session_mode": body.session_mode,
+                "persona_id": persona_id,
+            },
+        )
+        if sr.status_code not in (200, 201):
+            logging.error("Session insert failed: %s %s", sr.status_code, sr.text)
+            raise HTTPException(status_code=500, detail="Session creation failed")
+
+    return {"session_id": session_id}
 
 
 @app.get("/api/sessions/{session_id}")
@@ -1195,34 +1206,43 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
     session = db.get_session(session_id)
 
-    # --- NEW: also check PostgreSQL for arc-enabled sessions ---
+    # --- NEW: also check PostgreSQL for arc-enabled sessions (via PostgREST) ---
     pg_session = None
     arc_tracker = None
     try:
-        import uuid as uuid_mod
-        from db import AsyncSessionLocal
-        from models import Session as PgSessionModel, Scenario as PgScenarioModel
         from arc_engine import ArcStageTracker
-        from sqlalchemy import select as sa_select
-        async with AsyncSessionLocal() as pg:
-            pg_result = await pg.execute(
-                sa_select(PgSessionModel).where(PgSessionModel.id == uuid_mod.UUID(session_id))
+        _supa_url = os.environ.get("SUPABASE_URL", "")
+        _svc_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+        _hdrs = {
+            "apikey": _svc_key,
+            "Authorization": f"Bearer {_svc_key}",
+        }
+        async with httpx.AsyncClient(timeout=8.0) as _client:
+            # Look up session row
+            _sr = await _client.get(
+                f"{_supa_url}/rest/v1/sessions",
+                params={"id": f"eq.{session_id}", "select": "*", "limit": "1"},
+                headers=_hdrs,
             )
-            pg_session = pg_result.scalar_one_or_none()
-            if pg_session:
-                scenario_result = await pg.execute(
-                    sa_select(PgScenarioModel).where(PgScenarioModel.id == pg_session.scenario_id)
+            _sess_rows = _sr.json() if _sr.status_code == 200 else []
+            if _sess_rows:
+                pg_session = _sess_rows[0]
+                # Look up scenario row for arc/grading data
+                _scr = await _client.get(
+                    f"{_supa_url}/rest/v1/scenarios",
+                    params={"id": f"eq.{pg_session['scenario_id']}", "select": "*", "limit": "1"},
+                    headers=_hdrs,
                 )
-                scenario_obj = scenario_result.scalar_one_or_none()
-                if scenario_obj and scenario_obj.arc:
-                    arc_tracker = ArcStageTracker(scenario_obj.arc)
-                # Initialize Tier 2 session context (evaluator + grading state)
-                if scenario_obj:
+                _scen_rows = _scr.json() if _scr.status_code == 200 else []
+                if _scen_rows:
+                    scenario_obj = _scen_rows[0]
+                    if scenario_obj.get("arc"):
+                        arc_tracker = ArcStageTracker(scenario_obj["arc"])
                     session_context[session_id] = {
-                        "cof_map": scenario_obj.cof_map or {},
-                        "argument_rubrics": scenario_obj.argument_rubrics or {"stages": []},
-                        "grading_criteria": scenario_obj.grading_criteria or {},
-                        "methodology": scenario_obj.methodology or {},
+                        "cof_map": scenario_obj.get("cof_map") or {},
+                        "argument_rubrics": scenario_obj.get("argument_rubrics") or {"stages": []},
+                        "grading_criteria": scenario_obj.get("grading_criteria") or {},
+                        "methodology": scenario_obj.get("methodology") or {},
                         "turn_scores": [],
                         "transcript": [],
                     }
@@ -1233,16 +1253,16 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
     if pg_session and not session:
         # Demo mode: AI plays the rep demonstrator
         # Otherwise use the persona the rep selected at session creation (stored in pg_session.persona_id)
-        if pg_session.preset == "demo":
+        if pg_session.get("preset") == "demo":
             persona_id = "rep_demonstrator"
         else:
-            stored = getattr(pg_session, "persona_id", None) or "vac_buyer"
+            stored = pg_session.get("persona_id") or "vac_buyer"
             persona_id = stored if stored in PERSONAS else "vac_buyer"
         session = {
             "session_id": session_id,
             "persona_id": persona_id,
             "cartridge_id": None,
-            "scenario_id": str(pg_session.scenario_id),
+            "scenario_id": pg_session.get("scenario_id"),
         }
 
     if not session:

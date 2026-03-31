@@ -12,8 +12,6 @@ elif _raw_url.startswith("postgresql://") and "+asyncpg" not in _raw_url:
 else:
     DATABASE_URL = _raw_url
 
-# Strip any ?ssl=... query param from the URL — SSL is set via connect_args instead,
-# because asyncpg uses its own ssl keyword, not the sslmode query parameter.
 # Use NullPool in test environments to prevent event-loop conflicts with pytest-asyncio
 _testing = os.environ.get("TESTING", "").lower() in ("1", "true", "yes")
 if _testing:
