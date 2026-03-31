@@ -1,12 +1,17 @@
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional
 from decimal import Decimal
-from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInteger, Date, func, ForeignKey
+from sqlalchemy import String, Boolean, Integer, Text, DateTime, Numeric, BigInteger, Date, func, ForeignKey, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 from pgvector.sqlalchemy import Vector
 from db import Base
+
+# Shared enum types — must match the PostgreSQL enums created in migration 003.
+# create_type=False: Alembic/SQL migration owns DDL; SQLAlchemy only maps to existing types.
+upload_type_enum = SAEnum("admin_library", "rep_upload", name="upload_type_enum", create_type=False)
+session_mode_enum = SAEnum("practice", "certification", name="session_mode_enum", create_type=False)
 
 
 class Division(Base):
@@ -76,6 +81,8 @@ class Session(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Phase 1: session mode — controls RAG certification filter
+    session_mode: Mapped[Optional[str]] = mapped_column(session_mode_enum, default="practice", nullable=True)
 
 
 class Message(Base):
@@ -105,6 +112,8 @@ class Completion(Base):
     cert_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     lms_export_ready: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
     dimension_scores: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    # Phase 1: RAG citations used during session
+    rag_citations_json: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
 
@@ -160,6 +169,47 @@ class KnowledgeChunk(Base):
     approved_claim: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     keywords: Mapped[Optional[list]] = mapped_column(ARRAY(String), nullable=True)
     embedding: Mapped[Optional[list]] = mapped_column(Vector(1536), nullable=True)
+    # Phase 1: link back to rag_manifest and track upload source
+    manifest_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("rag_manifest.id"), nullable=True
+    )
+    upload_type: Mapped[Optional[str]] = mapped_column(upload_type_enum, default="admin_library", nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class RagManifest(Base):
+    """Tracks every file uploaded to the knowledge base (admin library or rep upload)."""
+    __tablename__ = "rag_manifest"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    filename: Mapped[str] = mapped_column(String, nullable=False)
+    file_hash: Mapped[str] = mapped_column(String(64), nullable=False)  # SHA-256 hex
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    upload_type: Mapped[str] = mapped_column(upload_type_enum, nullable=False)
+    is_active: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
+    approved: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    approved_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    session_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
+    client_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # ADV-2: timezone-aware default (lambda avoids sharing a single datetime instance)
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class RagRetrieval(Base):
+    """Audit log of every RAG retrieval event, regardless of session mode."""
+    __tablename__ = "rag_retrievals"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("sessions.id"), nullable=False)
+    chunk_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("knowledge_chunks.id"), nullable=False)
+    query_text: Mapped[str] = mapped_column(Text, nullable=False)
+    session_mode: Mapped[str] = mapped_column(session_mode_enum, nullable=False)
+    # ADV-2: timezone-aware default
+    timestamp: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

@@ -1,0 +1,50 @@
+project_id = "zpjqpuyrjssotofxiukh"
+
+[api]
+enabled = true
+schemas = ["public", "graphql_public", "pm"]
+extra_search_path = ["public", "extensions", "pm"]
+max_rows = 1000
+
+[auth]
+site_url = "https://sim.liquidsmarts.com"
+additional_redirect_urls = [
+  "https://sim.liquidsmarts.com",
+  "https://sim.liquidsmarts.com/auth/callback",
+  "https://bsc.liquidsmarts.com/**",
+  "https://bsc.liquidsmarts.com/auth/callback",
+  "https://portal.liquidsmarts.com",
+  "https://portal.liquidsmarts.com/**",
+  "https://cce.liquidsmarts.com",
+  "https://cce.liquidsmarts.com/auth/callback",
+  "http://localhost:3002/**",
+  "http://localhost:3002/auth/callback",
+  "http://localhost:3000/**",
+  "http://localhost:3000/auth/callback"
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_manual_linking = true
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 6
+
+[auth.email]
+double_confirm_changes = true
+enable_confirmations = false
+secure_password_change = false
+max_frequency = "1m0s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false

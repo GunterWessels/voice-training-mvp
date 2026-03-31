@@ -1,12 +1,15 @@
 import asyncio
 import logging
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 import os
 import uuid
+import hashlib
+import re as _re_upload
+import tempfile
 from typing import Dict, List, Optional, Any
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -20,7 +23,7 @@ load_dotenv()
 from ai_service import AIService
 from database import Database
 from cartridge_service import CartridgeService, DealContext
-from auth import get_current_user, verify_ws_token
+from auth import get_current_user, verify_ws_token, require_role
 from roast_service import RoastService
 from routers.knowledge_base import router as kb_router
 from routers.admin import router as admin_router
@@ -46,8 +49,23 @@ async def seed_tria_scenario():
                 _t("SELECT arc FROM scenarios WHERE id = :sid"),
                 {"sid": SCENARIO_ID}
             )).fetchone()
-            if not row or row.arc:
-                return  # not found, or already seeded
+            if not row:
+                # Ensure a division row exists (required FK on scenarios)
+                DIVISION_ID = "a1b2c3d4-0000-0000-0000-000000000001"
+                await _pg.execute(_t("""
+                    INSERT INTO divisions (id, name, slug)
+                    VALUES (:did, 'Endo Urology', 'endo-urology')
+                    ON CONFLICT (id) DO NOTHING
+                """), {"did": DIVISION_ID})
+                # Insert the scenario row (arc seeded below)
+                await _pg.execute(_t("""
+                    INSERT INTO scenarios (id, name, division_id, persona_id, arc, is_active)
+                    VALUES (:sid, 'Tria Stents — Urology', :did, 'urologist', '{}'::jsonb, true)
+                    ON CONFLICT (id) DO NOTHING
+                """), {"sid": SCENARIO_ID, "did": DIVISION_ID})
+                await _pg.commit()
+            elif row.arc and row.arc != {}:
+                return  # already fully seeded
 
         # Import seed data from companion module (avoids large inline dict)
         import importlib, sys, os
@@ -553,8 +571,16 @@ async def join_cohort(body: JoinRequest):
 
 class ApiSessionCreate(BaseModel):
     persona_id: str
-    scenario_id: str  # UUID string of the PostgreSQL scenario row
+    # scenario_id defaults to the Tria Stents scenario seeded at startup
+    scenario_id: str = "bbe7c082-687f-4b62-9b3e-69e1bd87537c"
     preset: str = "full_practice"
+    session_mode: str = "practice"  # "practice" | "certification"
+    # Accept "mode" sent by the frontend as an alias for session_mode
+    mode: Optional[str] = None
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.mode and self.session_mode == "practice":
+            self.session_mode = self.mode
 
 
 @app.post("/api/sessions", status_code=201)
@@ -603,6 +629,7 @@ async def create_api_session(
             preset=body.preset,
             status="in_progress",
             arc_stage_reached=1,
+            session_mode=body.session_mode,
         )
         pg.add(pg_session)
         await pg.commit()
@@ -704,6 +731,7 @@ async def get_series(user: dict = Depends(get_current_user)):
 
 class StartSessionRequest(BaseModel):
     mode: str = "practice"  # "practice" | "demo"
+    session_mode: str = "practice"  # "practice" | "certification"
 
 
 @app.post("/api/series/{series_id}/sessions", status_code=201)
@@ -749,6 +777,7 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
             preset=preset,
             status="in_progress",
             arc_stage_reached=1,
+            session_mode=body.session_mode,
         ))
         await pg.commit()
 
@@ -782,7 +811,7 @@ async def get_completions(user: dict = Depends(get_current_user)):
     }
 
 @app.get("/api/admin/sessions")
-async def get_admin_sessions(user: dict = Depends(get_current_user)):
+async def get_admin_sessions(user: dict = Depends(require_role("admin"))):
     """All sessions across all users — admin view."""
     from db import AsyncSessionLocal
     from sqlalchemy import text as sa_text
@@ -825,7 +854,7 @@ async def get_admin_sessions(user: dict = Depends(get_current_user)):
 
 
 @app.get("/api/manager/cohort")
-async def get_manager_cohort(user: dict = Depends(get_current_user)):
+async def get_manager_cohort(user: dict = Depends(require_role("manager", "admin"))):
     """Aggregate rep performance for manager view."""
     from db import AsyncSessionLocal
     from sqlalchemy import text as sa_text
@@ -866,7 +895,7 @@ async def get_manager_cohort(user: dict = Depends(get_current_user)):
 
 
 @app.get("/api/manager/export")
-async def export_manager_lms(user: dict = Depends(get_current_user)):
+async def export_manager_lms(user: dict = Depends(require_role("manager", "admin"))):
     """LMS-compatible CSV of cohort completions."""
     from fastapi.responses import Response
     from db import AsyncSessionLocal
@@ -897,7 +926,7 @@ async def export_manager_lms(user: dict = Depends(get_current_user)):
 
 
 @app.get("/api/admin/metrics")
-async def get_admin_metrics(user: dict = Depends(get_current_user)):
+async def get_admin_metrics(user: dict = Depends(require_role("admin"))):
     """Platform-wide metrics for admin dashboard."""
     from db import AsyncSessionLocal
     from sqlalchemy import text as sa_text
@@ -1026,13 +1055,14 @@ async def roast_session(session_id: str):
 async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str = ""):
     """WebSocket endpoint for real-time conversation"""
 
-    # JWT verification — required when token is supplied; legacy path skips if empty
-    ws_user = None
-    if token:
-        ws_user = await verify_ws_token(token)
-        if not ws_user:
-            await websocket.close(code=4001)
-            return
+    # JWT verification — always required; reject unauthenticated connections immediately
+    if not token:
+        await websocket.close(code=4001)
+        return
+    ws_user = await verify_ws_token(token)
+    if not ws_user:
+        await websocket.close(code=4001)
+        return
 
     await websocket.accept()
     connections[session_id] = websocket
@@ -1286,6 +1316,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                                     domain="clinical",
                                     db=_rag_db,
                                     top_k=3,
+                                    session_mode=pg_session.session_mode or "practice",
+                                    session_id=str(pg_session.id),
                                 )
                         except Exception as _rag_err:
                             logging.warning("RAG retrieval failed for session %s: %s", session_id, _rag_err)
@@ -1463,6 +1495,45 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
             if _eval_result and _eval_result.get("hint_for_rep"):
                 message_data["hint"] = _eval_result["hint_for_rep"]
 
+            # Real-time gate states and arc position (Phase 1: includes sales_gates)
+            if arc_tracker:
+                message_data["arc_stage"]        = arc_tracker.current_stage
+                message_data["cof_gates"]        = arc_tracker.cof_flags
+                message_data["spin_gates"]       = arc_tracker.spin_flags
+                message_data["challenger_gates"] = arc_tracker.challenger_flags
+                message_data["sales_gates"]      = arc_tracker.sales_flags
+
+            # Phase 1: post-turn coaching note
+            _post_turn_note = ""
+            if arc_tracker and user_text:
+                try:
+                    _post_turn_note = await ai_service.post_turn_coaching(
+                        rep_text=user_text,
+                        conversation_history=db.get_messages(session_id),
+                        active_gates=arc_tracker.sales_flags,
+                        session_mode=pg_session.session_mode if pg_session and pg_session.session_mode else "practice",
+                    )
+                except Exception as _ptc_err:
+                    logging.warning("post_turn_coaching failed for session %s: %s", session_id, _ptc_err)
+            message_data["post_turn_note"] = _post_turn_note
+
+            # For certification sessions, mark coaching as cert_mode
+            if pg_session and getattr(pg_session, "session_mode", None) == "certification":
+                message_data["cert_mode"] = True
+
+            # Phase 1: RAG citations — surface chunk metadata used in this turn
+            _rag_citation_list: List[dict] = []
+            if _rag_chunks:
+                for _rc in _rag_chunks:
+                    _rag_citation_list.append({
+                        "chunk_id": str(_rc.get("id") or _rc.get("chunk_id", "")),
+                        "source_doc": _rc.get("source_doc", ""),
+                        "page": _rc.get("page"),
+                        "approved": bool(_rc.get("approved_claim") or _rc.get("approved")),
+                        "manifest_id": _rc.get("manifest_id"),
+                    })
+            message_data["rag_citations"] = _rag_citation_list
+
             await websocket.send_json(message_data)
 
     except WebSocketDisconnect:
@@ -1570,6 +1641,208 @@ async def score_session(session_id: str):
         "feedback": feedback,
         "message_count": len(user_messages),
         "score_count": score_count,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Rep Upload Endpoint — Phase 1
+# ---------------------------------------------------------------------------
+
+# MIME-type magic-byte signatures for the three allowed formats.
+# Checked against the first 512 bytes of the uploaded file before any text
+# extraction; extension alone is not trusted.
+_MAGIC_SIGNATURES: dict = {
+    b"%PDF": ".pdf",
+    b"PK\x03\x04": ".docx",   # ZIP-based: DOCX, PPTX, XLSX all start with PK\x03\x04
+}
+_ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _sanitize_filename(raw: str) -> str:
+    """Strip path components; allow only alphanumeric, dot, hyphen."""
+    name = os.path.basename(raw)
+    name = _re_upload.sub(r"[^A-Za-z0-9.\-]", "_", name)
+    return name or "upload"
+
+
+def _sniff_extension(header: bytes, declared_ext: str) -> bool:
+    """Return True if magic bytes are consistent with the declared extension.
+
+    Plain text (.txt) has no magic signature so it is accepted as-is.
+    PDF and DOCX are validated against known byte patterns.
+    """
+    if declared_ext == ".txt":
+        return True
+    for sig, ext in _MAGIC_SIGNATURES.items():
+        if header.startswith(sig):
+            # DOCX and DOC share the PK magic; both map to the same allowed set
+            if sig == b"PK\x03\x04" and declared_ext in (".docx", ".doc"):
+                return True
+            if declared_ext == ext:
+                return True
+    return False
+
+
+def _chunk_text(text: str, window: int = 400) -> List[str]:
+    """Split text into ~window-word windows with no overlap."""
+    words = text.split()
+    return [
+        " ".join(words[i: i + window])
+        for i in range(0, len(words), window)
+        if words[i: i + window]
+    ]
+
+
+@app.post("/api/uploads")
+async def rep_upload(
+    file: UploadFile = File(...),
+    scenario_id: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
+):
+    """Rep document upload endpoint.
+
+    Accepts PDF, DOCX, or TXT. Max 10MB enforced before reading the full body.
+    Validates file type using magic bytes (first 512 bytes) before extraction.
+    Chunks and embeds the file into knowledge_chunks with upload_type='rep_upload'
+    and approved_claim=False. Creates a rag_manifest entry for audit tracking.
+    """
+    from openai import AsyncOpenAI as _AsyncOpenAI
+    from extractor import extract_text
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as _t
+
+    # --- Role check ---
+    user_role = current_user.get("role", "rep")
+    if user_role not in {"rep", "admin", "manager"}:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    # --- Extension check (fast, before reading full body) ---
+    safe_filename = _sanitize_filename(file.filename or "upload")
+    ext = os.path.splitext(safe_filename)[1].lower()
+    if ext not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed: PDF, DOCX, TXT",
+        )
+
+    # --- Size check: read in chunks, abort at 10MB before buffering full file ---
+    _chunk_size = 64 * 1024  # 64 KB read chunks
+    raw_chunks: list[bytes] = []
+    total_read = 0
+    while True:
+        piece = await file.read(_chunk_size)
+        if not piece:
+            break
+        total_read += len(piece)
+        if total_read > _MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File exceeds 10MB limit")
+        raw_chunks.append(piece)
+    raw_bytes = b"".join(raw_chunks)
+
+    # --- Magic-byte validation (ADV-1 / ADV-5: _ALLOWED_MIME_TYPES wired in here) ---
+    header = raw_bytes[:512]
+    if not _sniff_extension(header, ext):
+        raise HTTPException(
+            status_code=400,
+            detail=f"File content does not match declared extension '{ext}'",
+        )
+
+    # --- SHA-256 hash ---
+    file_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+    # --- Extract text ---
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        tmp.write(raw_bytes)
+        tmp_path = tmp.name
+
+    try:
+        extracted_text = extract_text(tmp_path)
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+    if not extracted_text.strip():
+        raise HTTPException(status_code=422, detail="Could not extract text from file")
+
+    # --- Chunk and embed ---
+    chunks = _chunk_text(extracted_text)
+    if not chunks:
+        raise HTTPException(status_code=422, detail="File produced no text chunks")
+
+    openai_client = _AsyncOpenAI()
+    manifest_id = str(uuid.uuid4())
+    user_id = current_user["user_id"]
+
+    async with AsyncSessionLocal() as db_sess:
+        # Insert manifest entry
+        await db_sess.execute(_t("""
+            INSERT INTO rag_manifest (id, filename, file_hash, uploaded_by, upload_type,
+                                      is_active, approved, created_at)
+            VALUES (:id::uuid, :filename, :file_hash, :uploaded_by::uuid,
+                    'rep_upload', true, false, NOW())
+        """), {
+            "id": manifest_id,
+            "filename": safe_filename,
+            "file_hash": file_hash,
+            "uploaded_by": user_id,
+        })
+
+        chunks_created = 0
+        for chunk_text_item in chunks:
+            try:
+                embed_resp = await openai_client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=chunk_text_item,
+                )
+                embedding = embed_resp.data[0].embedding
+                embedding_literal = "[" + ",".join(str(x) for x in embedding) + "]"
+            except Exception as _embed_err:
+                logging.warning("rep_upload: embedding failed for chunk: %s", _embed_err)
+                embedding_literal = None
+
+            chunk_id = str(uuid.uuid4())
+            await db_sess.execute(_t("""
+                INSERT INTO knowledge_chunks
+                    (id, scenario_id, product_id, domain, content,
+                     source_doc, approved_claim, embedding, manifest_id, upload_type, created_at)
+                VALUES (
+                    :id::uuid,
+                    :scenario_id,
+                    'rep_upload',
+                    'product',
+                    :content,
+                    :source_doc,
+                    false,
+                    CAST(:embedding AS vector),
+                    :manifest_id::uuid,
+                    'rep_upload',
+                    NOW()
+                )
+            """), {
+                "id": chunk_id,
+                "scenario_id": scenario_id,
+                "content": chunk_text_item,
+                "source_doc": safe_filename,
+                "embedding": embedding_literal,
+                "manifest_id": manifest_id,
+            })
+            chunks_created += 1
+
+        await db_sess.commit()
+
+    logging.info(
+        "rep_upload: user=%s file=%s manifest=%s chunks=%d",
+        user_id, safe_filename, manifest_id, chunks_created,
+    )
+
+    return {
+        "manifest_id": manifest_id,
+        "chunks_created": chunks_created,
+        "filename": safe_filename,
+        "upload_type": "rep_upload",
     }
 
 
