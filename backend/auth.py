@@ -42,6 +42,8 @@ async def _verify_token_remote(token: str) -> dict:
             timeout=5.0,
         )
     if resp.status_code != 200:
+        import logging as _log
+        _log.warning("Supabase auth verify failed: status=%s body=%s", resp.status_code, resp.text[:200])
         raise HTTPException(status_code=401, detail="Invalid token")
     data = resp.json()
     user_id = data.get("id")
