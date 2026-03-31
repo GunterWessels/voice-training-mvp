@@ -83,6 +83,8 @@ class Session(Base):
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Phase 1: session mode — controls RAG certification filter
     session_mode: Mapped[Optional[str]] = mapped_column(session_mode_enum, default="practice", nullable=True)
+    # Buyer persona selected by the rep at session creation
+    persona_id: Mapped[Optional[str]] = mapped_column(Text, default="vac_buyer", nullable=True)
 
 
 class Message(Base):
