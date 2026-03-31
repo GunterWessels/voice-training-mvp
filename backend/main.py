@@ -38,102 +38,28 @@ async def healthz():
 
 
 @app.on_event("startup")
-async def run_migrations():
-    """Run pending schema migrations (idempotent)."""
-    try:
-        from db import AsyncSessionLocal
-        from sqlalchemy import text as _t
-        async with AsyncSessionLocal() as _pg:
-            # Migration 004: add persona_id to sessions
-            await _pg.execute(_t(
-                "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS persona_id TEXT NOT NULL DEFAULT 'vac_buyer'"
-            ))
-            await _pg.commit()
-        logging.info("Schema migrations applied.")
-    except Exception as _e:
-        logging.warning("Migration run failed (non-fatal): %s", _e)
-
-
-@app.on_event("startup")
-async def seed_tria_scenario():
-    """Seed Tria Stents scenario JSONB columns if not yet populated."""
-    import json as _json
-    SCENARIO_ID = "bbe7c082-687f-4b62-9b3e-69e1bd87537c"
-    try:
-        from db import AsyncSessionLocal
-        from sqlalchemy import text as _t
-        async with AsyncSessionLocal() as _pg:
-            row = (await _pg.execute(
-                _t("SELECT arc FROM scenarios WHERE id = :sid"),
-                {"sid": SCENARIO_ID}
-            )).fetchone()
-            if not row:
-                # Ensure a division row exists (required FK on scenarios)
-                DIVISION_ID = "a1b2c3d4-0000-0000-0000-000000000001"
-                await _pg.execute(_t("""
-                    INSERT INTO divisions (id, name, slug)
-                    VALUES (:did, 'Endo Urology', 'endo-urology')
-                    ON CONFLICT (id) DO NOTHING
-                """), {"did": DIVISION_ID})
-                # Insert the scenario row (arc seeded below)
-                await _pg.execute(_t("""
-                    INSERT INTO scenarios (id, name, division_id, persona_id, arc, is_active)
-                    VALUES (:sid, 'Tria Stents — Urology', :did, 'urologist', '{}'::jsonb, true)
-                    ON CONFLICT (id) DO NOTHING
-                """), {"sid": SCENARIO_ID, "did": DIVISION_ID})
-                await _pg.commit()
-            elif row.arc and row.arc != {}:
-                return  # already fully seeded
-
-        # Import seed data from companion module (avoids large inline dict)
-        import importlib, sys, os
-        spec_path = os.path.join(os.path.dirname(__file__), "seed_tria_scenario.py")
-        spec = importlib.util.spec_from_file_location("seed_tria", spec_path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)  # load constants without running asyncio.run()
-
-        async with AsyncSessionLocal() as _pg:
-            await _pg.execute(_t("""
-                UPDATE scenarios SET
-                    arc              = :arc::jsonb,
-                    cof_map          = :cof_map::jsonb,
-                    argument_rubrics = :rubrics::jsonb,
-                    grading_criteria = :grading::jsonb,
-                    methodology      = :methodology::jsonb
-                WHERE id = :sid
-            """), {
-                "arc":        _json.dumps(mod.ARC),
-                "cof_map":    _json.dumps(mod.COF_MAP),
-                "rubrics":    _json.dumps(mod.ARGUMENT_RUBRICS),
-                "grading":    _json.dumps(mod.GRADING_CRITERIA),
-                "methodology": _json.dumps(mod.METHODOLOGY),
-                "sid":        SCENARIO_ID,
-            })
-            await _pg.commit()
-        logging.info("Tria scenario seeded successfully.")
-    except Exception as _e:
-        logging.warning("Tria scenario seed failed (non-fatal): %s", _e)
-
-
-@app.on_event("startup")
 async def promote_admin_emails():
-    """Promote emails listed in ADMIN_EMAILS env var to admin role (upsert)."""
+    """Promote emails listed in ADMIN_EMAILS env var to admin role via PostgREST."""
     raw = os.environ.get("ADMIN_EMAILS", "").strip()
     if not raw:
         return
     emails = [e.strip() for e in raw.split(",") if e.strip()]
+    _supa_url = os.environ.get("SUPABASE_URL", "")
+    _svc_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not _supa_url or not _svc_key:
+        return
+    _hdrs = {"apikey": _svc_key, "Authorization": f"Bearer {_svc_key}", "Content-Type": "application/json",
+             "Prefer": "resolution=merge-duplicates,return=minimal"}
     try:
-        from db import AsyncSessionLocal
-        from sqlalchemy import text as _t
-        async with AsyncSessionLocal() as _pg:
+        import uuid as _uuid
+        async with httpx.AsyncClient(timeout=8.0) as _client:
             for email in emails:
-                await _pg.execute(_t("""
-                    INSERT INTO users (id, email, role)
-                    VALUES (gen_random_uuid(), :email, 'admin')
-                    ON CONFLICT (email) DO UPDATE SET role = 'admin'
-                """), {"email": email})
-            await _pg.commit()
-        logging.info("Admin emails promoted: %s", emails)
+                await _client.post(
+                    f"{_supa_url}/rest/v1/users",
+                    headers=_hdrs,
+                    json={"id": str(_uuid.uuid4()), "email": email, "role": "admin"},
+                )
+        logging.info("Admin emails promoted via PostgREST: %s", emails)
     except Exception as _e:
         logging.warning("Admin email promotion failed (non-fatal): %s", _e)
 
