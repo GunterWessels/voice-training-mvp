@@ -80,14 +80,15 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     token = credentials.credentials
-    testing = os.environ.get("TESTING") == "1"
 
     try:
-        if testing or not SUPABASE_ANON_KEY:
-            # Local JWT verification for tests
+        if SUPABASE_JWT_SECRET:
+            # Local verification: fast, no network dependency, cryptographically secure.
+            # Supabase signs all JWTs with this HS256 secret — local check is equivalent
+            # to the remote /auth/v1/user call for authenticity purposes.
             data = _verify_token_local(token)
         else:
-            # Remote verification via Supabase Auth API
+            # Fallback: remote verification when secret is unavailable (shouldn't happen in prod)
             data = await _verify_token_remote(token)
     except HTTPException:
         raise
