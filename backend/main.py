@@ -15,6 +15,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+import httpx
 from pydantic import BaseModel, Field
 
 # Load environment variables
@@ -1288,7 +1289,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
             base_rag_context["selected_scenario"] = selected_scenario
 
     # Send ready message with persona info and TTS info
-    is_demo = pg_session and pg_session.preset == "demo"
+    is_demo = pg_session and pg_session.get("preset") == "demo"
     tts_info = ai_service.tts_service.get_provider_info()
     await websocket.send_json(
         {
@@ -1460,12 +1461,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                             async with AsyncSessionLocal() as _rag_db:
                                 _rag_chunks = await retrieve(
                                     query=user_text,
-                                    scenario_id=str(pg_session.scenario_id),
+                                    scenario_id=str(pg_session.get("scenario_id", "")),
                                     domain="clinical",
                                     db=_rag_db,
                                     top_k=3,
-                                    session_mode=pg_session.session_mode or "practice",
-                                    session_id=str(pg_session.id),
+                                    session_mode=pg_session.get("session_mode") or "practice",
+                                    session_id=str(pg_session.get("id", session_id)),
                                 )
                         except Exception as _rag_err:
                             logging.warning("RAG retrieval failed for session %s: %s", session_id, _rag_err)
@@ -1501,7 +1502,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 try:
                     from metering import get_session_cost, is_over_budget
                     current_cost = await get_session_cost(session_id)
-                    preset = pg_session.preset or "full_practice"
+                    preset = pg_session.get("preset") or "full_practice"
                     if is_over_budget(current_cost, preset):
                         await websocket.send_json({
                             "type": "ai_message",
@@ -1542,10 +1543,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                                 cof = arc_tracker.cof_flags
                                 if should_issue_cert(
                                     cof["clinical"], cof["operational"], cof["financial"],
-                                    arc_tracker.current_stage, pg_session.preset or "full_practice"
+                                    arc_tracker.current_stage, pg_session.get("preset") or "full_practice"
                                 ) and ws_user:
                                     completion_data = {
-                                        "completion_id": str(pg_session.id),
+                                        "completion_id": pg_session.get("id", session_id),
                                         "user_id": ws_user.get("user_id", ""),
                                         "rep_name": ws_user.get("name") or ws_user.get("full_name") or ws_user.get("email", ""),
                                         "scenario_name": "Training Session",
@@ -1659,14 +1660,14 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                         rep_text=user_text,
                         conversation_history=db.get_messages(session_id),
                         active_gates=arc_tracker.sales_flags,
-                        session_mode=pg_session.session_mode if pg_session and pg_session.session_mode else "practice",
+                        session_mode=(pg_session.get("session_mode") if pg_session else None) or "practice",
                     )
                 except Exception as _ptc_err:
                     logging.warning("post_turn_coaching failed for session %s: %s", session_id, _ptc_err)
             message_data["post_turn_note"] = _post_turn_note
 
             # For certification sessions, mark coaching as cert_mode
-            if pg_session and getattr(pg_session, "session_mode", None) == "certification":
+            if pg_session and pg_session.get("session_mode") == "certification":
                 message_data["cert_mode"] = True
 
             # Phase 1: RAG citations — surface chunk metadata used in this turn
@@ -1721,10 +1722,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
                 cof = arc_tracker.cof_flags
                 if should_issue_cert(
                     cof["clinical"], cof["operational"], cof["financial"],
-                    arc_tracker.current_stage, pg_session.preset or "full_practice"
+                    arc_tracker.current_stage, pg_session.get("preset") or "full_practice"
                 ):
                     completion_data = {
-                        "completion_id": str(pg_session.id),
+                        "completion_id": pg_session.get("id", session_id),
                         "user_id": ws_user.get("user_id", ""),
                         "rep_name": ws_user.get("name") or ws_user.get("full_name") or ws_user.get("email", ""),
                         "scenario_name": "Training Session",
