@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import CCEHeader from '@/components/CCEHeader'
 import SessionModeSelector, { type SessionMode } from '@/components/SessionModeSelector'
+import ExampleConversation from '@/components/ExampleConversation'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
@@ -27,6 +28,12 @@ interface GradingDimension {
   description: string
 }
 
+interface DemoTurn {
+  speaker: 'rep' | 'buyer'
+  text: string
+  coaching?: string
+}
+
 interface SeriesDetail {
   id: string
   name: string
@@ -37,6 +44,7 @@ interface SeriesDetail {
   persona_id?: string
   cof_map: CofMap
   grading_criteria: { dimensions: GradingDimension[] }
+  demo_script?: DemoTurn[]
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -235,6 +243,11 @@ export default function SeriesDetailPage() {
               ))}
             </div>
           </Section>
+        )}
+
+        {/* Example conversation */}
+        {detail.demo_script && detail.demo_script.length > 0 && (
+          <ExampleConversation script={detail.demo_script} />
         )}
 
         {/* Mode selector + Begin */}

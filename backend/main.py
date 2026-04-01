@@ -427,6 +427,26 @@ async def get_tts_info():
     return ai_service.tts_service.get_provider_info()
 
 
+class DemoTTSRequest(BaseModel):
+    text: str
+    speaker: str = "buyer"  # "rep" | "buyer"
+
+
+@app.post("/api/demo/tts")
+async def demo_tts(body: DemoTTSRequest, user: dict = Depends(get_current_user)):
+    """Synthesize a single line of the demo script. Returns base64 audio."""
+    persona_id = "lve_hcru_hospital_admin" if body.speaker == "buyer" else "vac_buyer"
+    try:
+        result = await ai_service.tts_service.generate_speech(body.text, persona_id=persona_id)
+        if not result:
+            raise HTTPException(status_code=503, detail="TTS provider unavailable")
+        return {"audio_data": result["audio_data"], "content_type": result.get("content_type", "audio/mpeg")}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.post("/sessions")
 @limiter.limit("20/minute")
 async def create_session(request: Request, session_data: SessionCreate):
@@ -867,6 +887,7 @@ async def get_series_detail(series_id: str, user: dict = Depends(get_current_use
         "persona_id": row.persona_id,
         "cof_map": row.cof_map,
         "methodology": row.methodology,
+        "demo_script": (row.methodology or {}).get("demo_script"),
         "grading_criteria": row.grading_criteria,
     }
 
