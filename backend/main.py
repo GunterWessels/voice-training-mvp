@@ -847,6 +847,7 @@ async def get_series_detail(series_id: str, user: dict = Depends(get_current_use
 class StartSessionRequest(BaseModel):
     mode: str = "practice"  # "practice" | "demo"
     session_mode: str = "practice"  # "practice" | "certification"
+    persona_id: Optional[str] = None  # rep's chosen persona; falls back to scenario default
 
 
 @app.post("/api/series/{series_id}/sessions", status_code=201)
@@ -883,6 +884,9 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
             .on_conflict_do_nothing()
         )
 
+        # Use rep's chosen persona if provided; fall back to scenario's default persona
+        resolved_persona = body.persona_id or row.persona_id or "vac_buyer"
+
         session_id = uuid_mod.uuid4()
         preset = "demo" if body.mode == "demo" else "full_practice"
         pg.add(SessionModel(
@@ -893,10 +897,11 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
             status="in_progress",
             arc_stage_reached=1,
             session_mode=body.session_mode,
+            persona_id=resolved_persona,
         ))
         await pg.commit()
 
-    return {"session_id": str(session_id), "scenario_id": row.scenario_id, "persona_id": row.persona_id, "mode": body.mode}
+    return {"session_id": str(session_id), "scenario_id": row.scenario_id, "persona_id": resolved_persona, "mode": body.mode}
 
 
 @app.get("/api/completions")
@@ -1239,13 +1244,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, token: str =
 
     # If PostgreSQL session found but no legacy SQLite session, create a minimal session dict
     if pg_session and not session:
-        # Demo mode: AI plays the rep demonstrator
-        # Otherwise use the persona the rep selected at session creation (stored in pg_session.persona_id)
         if pg_session.get("preset") == "demo":
             persona_id = "rep_demonstrator"
         else:
-            stored = pg_session.get("persona_id") or "vac_buyer"
-            persona_id = stored if stored in PERSONAS else "vac_buyer"
+            # Prefer stored persona on session; fall back to scenario's default persona
+            stored = pg_session.get("persona_id") or (scenario_obj.get("persona_id") if scenario_obj else None) or "hospital_admin"
+            persona_id = stored if stored in PERSONAS else "hospital_admin"
         session = {
             "session_id": session_id,
             "persona_id": persona_id,
