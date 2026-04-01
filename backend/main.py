@@ -784,15 +784,24 @@ async def get_series(user: dict = Depends(get_current_user)):
     from sqlalchemy import text as sa_text
     async with AsyncSessionLocal() as pg:
         result = await pg.execute(sa_text("""
-            SELECT ps.id::text, ps.name, COUNT(psi.id) AS stage_count
+            SELECT ps.id::text, ps.name, ps.category, ps.description,
+                   COUNT(psi.id) AS stage_count
             FROM practice_series ps
             LEFT JOIN practice_series_items psi ON psi.series_id = ps.id
-            GROUP BY ps.id, ps.name
+            GROUP BY ps.id, ps.name, ps.category, ps.description
             ORDER BY ps.created_at
         """))
         rows = result.fetchall()
     series = [
-        {"id": r.id, "name": r.name, "stage_count": int(r.stage_count), "status": "not_started"}
+        {
+            "id": r.id,
+            "name": r.name,
+            "category": r.category,
+            "description": r.description,
+            "stage_count": int(r.stage_count),
+            "status": "not_started",
+            "approved": True,
+        }
         for r in rows
     ]
     return {"series": series}
