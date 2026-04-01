@@ -92,9 +92,13 @@ async def get_current_user(
             data = await _verify_token_remote(token)
     except HTTPException:
         raise
-    except JWTError:
+    except JWTError as e:
+        import logging as _log
+        _log.warning("JWT verification failed: %s", str(e))
         raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception:
+    except Exception as e:
+        import logging as _log
+        _log.warning("Auth exception: %s: %s", type(e).__name__, str(e))
         raise HTTPException(status_code=401, detail="Invalid token")
 
     user_id = data["user_id"]
