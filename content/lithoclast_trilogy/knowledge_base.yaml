@@ -1,0 +1,143 @@
+# Swiss LithoClast Trilogy — RAG Knowledge Base
+# Product: Boston Scientific Swiss LithoClast® Trilogy Lithotripter
+# Source: bostonscientific.com/en-US/medical-specialties/urology/products/lithoclast-trilogy.html
+# Key study: Large T, et al. J Endourol. 2021 Sep;35(9):1326-32 (n=100 RCT)
+# Last updated: 2026-04-01
+
+product_id: lithoclast_trilogy
+scenario_ids:
+  - bbe7c082-687f-4b62-9b3e-69e1bd87537c
+
+chunks:
+
+  - id: trilogy_p_001
+    domain: product
+    section: overview
+    approved_claim: true
+    source: "BSC LithoClast Trilogy Product Page"
+    keywords: [LithoClast Trilogy, PCNL, lithotripter, ultrasonic, ballistic, dual energy, suction, simultaneous, kidney stones]
+    content: |
+      The Swiss LithoClast® Trilogy Lithotripter is a dual-energy stone management
+      system delivering controlled ultrasonic and ballistic energy concurrently or
+      independently through a single probe, with simultaneous suction for removal of
+      kidney stones, ureteral stones, and bladder stones. Designed for percutaneous
+      nephrolithotomy (PCNL) and large stone burden cases, the system combines the
+      crushing power of ballistic lithotripsy with the dusting efficiency of ultrasonic
+      energy — removing the need to switch between separate systems.
+
+  - id: trilogy_p_002
+    domain: product
+    section: trilogy_max
+    approved_claim: true
+    source: "BSC Swiss LithoClast Trilogy Max Product Page"
+    keywords: [Trilogy Max, smaller handpiece, improved software, wireless foot pedal, enhanced interface, upgrade]
+    content: |
+      The Swiss LithoClast® Trilogy Max is the enhanced successor to the original
+      Trilogy, incorporating physician-requested improvements: a smaller handpiece
+      profile for improved ergonomics, improved software and user interface, and a
+      wider wireless foot pedal for more intuitive hands-free control. The Trilogy Max
+      retains all core dual-energy capabilities of the Trilogy platform while
+      addressing the operational feedback collected from the original Trilogy user base.
+
+  # ── CLINICAL ─────────────────────────────────────────────────────────────
+
+  - id: trilogy_c_001
+    domain: clinical
+    section: rct_stone_free_rate
+    approved_claim: true
+    source: "Large T, et al. J Endourol. 2021 Sep;35(9):1326-32 — prospective RCT n=100"
+    keywords: [stone free rate, 90 percent, RCT, prospective, J Endourol, "2021", PCNL, Trilogy, efficacy]
+    content: |
+      In a prospective randomized controlled trial (Large T, et al., J Endourol 2021;
+      35(9):1326-32, n=100: 51 Trilogy, 49 ShockPulse-SE), Swiss LithoClast Trilogy
+      achieved a stone-free rate of 90.2%. This represents a high-quality clinical
+      evidence base — prospective RCT design, peer-reviewed publication — supporting
+      Trilogy's efficacy in the most challenging stone burden cases encountered
+      during PCNL.
+
+  - id: trilogy_c_002
+    domain: clinical
+    section: rct_or_time
+    approved_claim: true
+    source: "Large T, et al. J Endourol. 2021 Sep;35(9):1326-32"
+    keywords: [OR time, 36 minutes, reduction, operating room, procedure time, efficiency, p=0.017, RCT]
+    content: |
+      In the J Endourol 2021 RCT, Trilogy reduced operating room time by 36 minutes
+      versus the comparison device (p=0.017). Stone clearance time improved by
+      0.45 minutes (p=0.021). A 36-minute OR time reduction per PCNL case has direct
+      financial and throughput implications: more cases per OR day, reduced anesthesia
+      cost per case, and lower OR overhead allocation per procedure. At $40-60/minute
+      of OR time, a 36-minute reduction represents $1,440-$2,160 in saved OR cost per
+      case.
+
+  - id: trilogy_c_003
+    domain: clinical
+    section: rct_device_reliability
+    approved_claim: true
+    source: "Large T, et al. J Endourol. 2021 Sep;35(9):1326-32"
+    keywords: [device malfunction, 1.96 percent, 34.69 percent, suction occlusion, 0 percent, 30.6 percent, reliability, p<0.001]
+    content: |
+      The J Endourol 2021 RCT demonstrated striking reliability superiority for
+      Trilogy: device malfunction rate 1.96% versus 34.69% for the comparison device
+      (p≤0.001); suction occlusion rate 0% versus 30.6% (p<0.001). In PCNL, device
+      failure mid-case requires intraoperative troubleshooting, adds OR time, and may
+      require case conversion. A 34.69% malfunction rate in the comparison arm means
+      roughly 1-in-3 cases experienced a device problem. Trilogy's 1.96% failure rate
+      represents near-complete procedural reliability.
+
+  - id: trilogy_c_004
+    domain: clinical
+    section: rct_secondary_procedures
+    approved_claim: true
+    source: "Large T, et al. J Endourol. 2021 Sep;35(9):1326-32"
+    keywords: [secondary procedure, 17.7 percent, 34.7 percent, residual fragments, retreatment, p=0.005]
+    content: |
+      Trilogy reduced the secondary procedure rate for residual stone fragments to
+      17.7% versus 34.7% for the comparison device (p=0.005). Secondary PCNL procedures
+      to address residual stone burden are a direct patient safety risk (second general
+      anesthetic, second percutaneous access), an operational burden (additional OR
+      scheduling), and a financial exposure (additional facility and professional costs
+      with potential reimbursement risk). Trilogy's superior first-pass stone clearance
+      cuts this secondary procedure rate by more than half.
+
+  # ── COF ──────────────────────────────────────────────────────────────────
+
+  - id: trilogy_cof_001
+    domain: cof
+    section: pcnl_cof
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis / Large et al. RCT data"
+    keywords: [PCNL, COF, OR time, secondary procedure, re-operation, stone free, financial, VAC, capital]
+    content: |
+      Swiss LithoClast Trilogy COF frame:
+      Clinical: 90.2% stone-free rate; 1.96% device malfunction vs 34.69% comparator;
+      0% suction occlusion vs 30.6% comparator; 17.7% secondary procedure rate vs
+      34.7% (RCT, J Endourol 2021). Operational: 36-minute OR time reduction per case;
+      near-zero device failure eliminates intraoperative troubleshooting delays; cuts
+      secondary procedure scheduling burden by half. Financial: 36 min x $40-60/OR
+      min = $1,440-$2,160 saved per case in direct OR costs; 17% reduction in
+      secondary procedures eliminates associated re-admission and OR scheduling costs.
+      VAC framing: the comparison is not device-to-device price — it is the total cost
+      of care per stone episode, including OR time, re-operations, and readmissions.
+      Strategic probe: "What is your current secondary procedure rate after PCNL, and
+      what does a second percutaneous access cost your facility in OR time and
+      readmission risk?"
+
+  # ── OBJECTION ────────────────────────────────────────────────────────────
+
+  - id: trilogy_obj_001
+    domain: objection
+    section: capital_cost_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [capital, cost, Trilogy, ROI, OR time, secondary procedure, per-case, payback, PCNL volume]
+    content: |
+      When capital cost is the objection for Trilogy: model the financial return on
+      OR time and secondary procedure reduction from the RCT data. If the program does
+      100 PCNL cases/year at a 36-minute OR time reduction, that is 3,600 minutes of
+      recovered OR capacity — enough for 6-8 additional cases per year. If the current
+      secondary procedure rate is 30%+ (comparator data), shifting to Trilogy's 17.7%
+      eliminates 12+ re-operations per 100 cases. Each avoided PCNL re-operation
+      represents OR time, anesthesia, and readmission risk avoidance. The capital
+      investment calculates back to a payback period that is shorter than most
+      capital committee benchmarks for surgical equipment.

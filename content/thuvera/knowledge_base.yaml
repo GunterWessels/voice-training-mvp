@@ -1,0 +1,138 @@
+# Thuvera Thulium Fiber Laser System — RAG Knowledge Base
+# Product: Boston Scientific Thuvera™ Thulium Fiber Laser System
+# Source: bostonscientific.com — Thuvera HCP product page
+# Last updated: 2026-04-01
+# approved_claim: true = direct BSC website or IFU language. false = analytical synthesis.
+
+product_id: thuvera
+scenario_ids:
+  - bbe7c082-687f-4b62-9b3e-69e1bd87537c
+
+chunks:
+
+  # ── PRODUCT ────────────────────────────────────────────────────────────────
+
+  - id: thuvera_p_001
+    domain: product
+    section: overview
+    approved_claim: true
+    source: "BSC Thuvera HCP Product Page"
+    keywords: [Thuvera, thulium fiber laser, TFL, stone dusting, portable, wall outlet, any OR]
+    content: |
+      The Thuvera™ Thulium Fiber Laser System is Boston Scientific's thulium fiber
+      laser platform designed to optimize dusting efficiency and reduce retropulsion
+      in urinary stone procedures. The system is designed for portability — it plugs
+      into a standard wall outlet, allowing treatment in any operating room without
+      special electrical infrastructure. Intended for use in lithotripsy across a range
+      of stone sizes and anatomical locations.
+
+  - id: thuvera_p_002
+    domain: product
+    section: fiber_options
+    approved_claim: true
+    source: "BSC Thuvera HCP Product Page"
+    keywords: [fiber diameter, 150 micron, 940 micron, push-in connection, dual pedal, preset, footswitch]
+    content: |
+      The Thuvera system accepts surgical fibers across a wide diameter range: 150 to
+      940 microns. Fiber loading uses a push-in connection design for quick setup.
+      The dual-pedal footswitch allows hands-free control during procedures. Surgeons
+      can program customizable preset settings for their preferred energy and frequency
+      configurations. This breadth of fiber compatibility enables access to narrow
+      working channels in ureteroscopy as well as larger channels in percutaneous
+      procedures.
+
+  - id: thuvera_p_003
+    domain: product
+    section: indications
+    approved_claim: true
+    source: "BSC Thuvera Surgical Fiber Brief Summary"
+    keywords: [indication, soft tissue, incision, excision, ablation, coagulation, hemostasis, urology, lithotripsy]
+    content: |
+      The Thuvera Surgical Fibers are intended for use in incision, excision,
+      resection, ablation, coagulation, hemostasis, and vaporization of soft tissue,
+      with or without an endoscope, in urology and lithotripsy procedures.
+
+  # ── CLINICAL ─────────────────────────────────────────────────────────────
+
+  - id: thuvera_c_001
+    domain: clinical
+    section: retropulsion_reduction
+    approved_claim: true
+    source: "BSC Thuvera Product Page — bench test data"
+    keywords: [retropulsion, 50 percent, TFL, thulium fiber laser, in vitro, small stones, 5mm, dusting mode]
+    content: |
+      Retropulsion is reduced by up to approximately 50% compared to regular thulium
+      fiber laser (TFL) pulse at equal energy settings, based on in vitro bench test
+      data. This applies specifically to the treatment of smaller stones (≤5 mm) in
+      dusting mode. Important limitation: bench test results may not be indicative of
+      clinical performance. Clinicians should consider this when interpreting the data
+      in the context of their patient population.
+
+  - id: thuvera_c_002
+    domain: clinical
+    section: thulium_vs_holmium_mechanism
+    approved_claim: false
+    source: "LiquidSMARTS™ clinical synthesis / published TFL literature"
+    keywords: [thulium, holmium, wavelength, absorption, water, dusting, fragmentation, stone composition, calcium oxalate]
+    content: |
+      Thulium fiber lasers operate at a 1940 nm wavelength versus holmium's 2100 nm.
+      The closer proximity to water's peak absorption peak (1950 nm) means thulium
+      energy is absorbed more efficiently by the fluid environment around the stone,
+      creating finer fragmentation and smaller stone particles ("dust"). This physical
+      advantage makes TFL systems particularly effective for stone dusting of
+      calcium-containing stones (calcium oxalate monohydrate, calcium phosphate) where
+      complete fragmentation to passable dust eliminates the need for stone basket
+      retrieval. For urologists pursuing a dust-and-leave approach, Thuvera provides
+      the physics to support it.
+
+  - id: thuvera_c_003
+    domain: clinical
+    section: quiet_operation
+    approved_claim: true
+    source: "BSC Thuvera Product Page"
+    keywords: [quiet, noise, communication, OR team, procedure, acoustic, operations]
+    content: |
+      The Thuvera system is engineered for quiet operation, designed to make
+      communicating during procedures easier for the entire surgical team. In a
+      standard holmium environment, laser firing can generate acoustic feedback that
+      interferes with intraoperative communication. Reduced noise improves team
+      coordination during complex ureteroscopic procedures.
+
+  # ── COF ──────────────────────────────────────────────────────────────────
+
+  - id: thuvera_cof_001
+    domain: cof
+    section: stone_cof
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis"
+    keywords: [dusting, dust and leave, retrieval, basket, re-operation, stone free rate, throughput, portability]
+    content: |
+      Thuvera COF frame for stone programs:
+      Clinical: Dust-and-leave approach reduces procedure complexity — no basket
+      retrieval required for small fragments; 50% retropulsion reduction for ≤5mm
+      stones (in vitro). Operational: Portable system plugs into standard wall outlet;
+      no dedicated OR electrical configuration required; can float between ORs. Quiet
+      operation improves team communication and reduces cognitive load. Financial:
+      Capital investment without infrastructure modification. Eliminating basket
+      retrieval reduces per-procedure accessory costs. Portability enables utilization
+      across multiple procedure suites without fixed installation. Strategic probe:
+      "What percentage of your stone cases are small-volume stones where dusting to
+      passable fragments would eliminate the retrieval step?"
+
+  # ── OBJECTION ────────────────────────────────────────────────────────────
+
+  - id: thuvera_obj_001
+    domain: objection
+    section: vs_holmium_moses
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [holmium, Moses, versus, thulium, TFL, dusting, fragmentation, stone type, versatility, BPH]
+    content: |
+      When a prospect asks how Thuvera compares to Moses 2.0 holmium: position by
+      use case, not by superiority. Thuvera excels at stone dusting — particularly
+      small stones where dust-and-leave is the clinical intent. Moses 2.0 excels at
+      fragmentation of larger stones and adds BPH (HoLEP) capability on the same
+      platform. If the program's primary need is stone volume with a dusting protocol,
+      Thuvera is purpose-built. If they need one system for both stone and BPH,
+      Moses 2.0 is the answer. The right conversation is: "What does your stone
+      case mix look like, and do you have a separate platform for BPH?"

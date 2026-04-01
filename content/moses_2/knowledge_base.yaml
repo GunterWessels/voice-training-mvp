@@ -1,0 +1,206 @@
+# Moses 2.0 (Lumenis Pulse 120H with MOSES Technology) — RAG Knowledge Base
+# Product: Boston Scientific / Lumenis Pulse 120H Holmium Laser with MOSES 2.0 Technology
+# Source: bostonscientific.com/en-US/medical-specialties/urology/products/moses-technology.html
+# Last updated: 2026-04-01
+# approved_claim: true = direct BSC website or IFU language. false = analytical synthesis.
+
+product_id: moses_2
+scenario_ids:
+  - bbe7c082-687f-4b62-9b3e-69e1bd87537c
+
+chunks:
+
+  # ── PRODUCT ────────────────────────────────────────────────────────────────
+
+  - id: moses_p_001
+    domain: product
+    section: overview
+    approved_claim: true
+    source: "BSC Moses Technology page / Lumenis Pulse 120H Product Page"
+    keywords: [Moses 2.0, holmium laser, Pulse 120H, Lumenis, stone, BPH, lithotripsy, versatile]
+    content: |
+      The Lumenis Pulse 120H Holmium Laser System with MOSES 2.0 Technology is a
+      capital equipment platform designed for both stone management (lithotripsy) and
+      BPH treatment. MOSES 2.0 Technology modulates energy delivery to improve
+      efficiency of stone fragmentation and soft tissue ablation. Backed by extensive
+      clinical evidence, the system is proven to optimize energy delivery with
+      versatility across stone and BPH procedures. Available for use in hospital OR,
+      ambulatory surgery centers, and urologist office settings.
+
+  - id: moses_p_002
+    domain: product
+    section: technology_mechanism
+    approved_claim: false
+    source: "BSC Moses Technology page / Elhilali et al. J Endourol 2017"
+    keywords: [MOSES, modulated pulse, retropulsion, energy delivery, prograde, stone separation, holmium pulse shape]
+    content: |
+      MOSES (Modulated Optimized Selective Energy System) 2.0 Technology shapes the
+      holmium laser pulse to create a Moses Effect — the water column in the ureter is
+      physically displaced before energy delivery, allowing laser energy to travel
+      prograde through a vapor tunnel directly to the stone with minimal deflection.
+      Standard holmium pulses disperse energy in all directions; MOSES concentrates it
+      forward. The result: greater stone contact per pulse, higher ablation efficiency,
+      and reduced stone retropulsion. This is not a power increase — it is a
+      physics-based improvement in how existing energy reaches the target.
+
+  # ── CLINICAL — LITHOTRIPSY ────────────────────────────────────────────────
+
+  - id: moses_c_001
+    domain: clinical
+    section: lithotripsy_retropulsion
+    approved_claim: true
+    source: "BSC Moses Lithotripsy page — bostonscientific.com"
+    keywords: [retropulsion, 50 percent, reduction, standard holmium, stone migration, repositioning, procedure time]
+    content: |
+      MOSES 2.0 Technology delivers a 50% reduction in retropulsion compared with
+      standard holmium pulse. Retropulsion — the backward propulsion of a stone from
+      laser impact — requires time-consuming stone chasing and repositioning. Reducing
+      it by 50% means the urologist spends less time repositioning and more time
+      actively ablating. Clinical significance: fewer missed ablation attempts, reduced
+      fluoroscopy time, and lower total procedure time per stone.
+
+  - id: moses_c_002
+    domain: clinical
+    section: lithotripsy_procedure_time
+    approved_claim: true
+    source: "BSC Moses Lithotripsy page — Ibrahim et al. J Endourol 2020"
+    keywords: [procedure time, 20 percent, reduction, double-blind, randomized, controlled trial, lithotripsy, efficiency]
+    content: |
+      MOSES 2.0 Technology achieves a nearly 20% reduction in lithotripsy procedure
+      time compared to standard holmium, per a double-blinded prospective randomized
+      clinical trial (Ibrahim et al., J Endourol, 2020;34:624-628). Shorter procedure
+      time directly reduces OR suite utilization, anesthesia cost, and recovery room
+      burden. For high-volume stone programs, a 20% procedure time reduction represents
+      a meaningful increase in case throughput without adding surgical staff.
+
+  - id: moses_c_003
+    domain: clinical
+    section: lithotripsy_stone_ablation
+    approved_claim: true
+    source: "BSC Moses Lithotripsy page — bench test data"
+    keywords: [stone ablation, 92 percent, 120Hz, dusting, small-core fiber, mini-PCNL, fragmentation efficiency]
+    content: |
+      At 120Hz in small-core MOSES fibers, the system demonstrates 92% greater stone
+      ablation efficiency in stone dusting mode compared to standard holmium. In
+      mini-PCNL procedures, MOSES 2.0 Technology improves treatment efficiency by 33%
+      (Dunne et al., J Urol 2021;206:e318). Bench test note: these laboratory
+      results may not be directly indicative of all clinical performance outcomes.
+      However, the randomized controlled trial data (Ibrahim 2020) corroborates the
+      efficiency gains in clinical settings.
+
+  # ── CLINICAL — BPH ───────────────────────────────────────────────────────
+
+  - id: moses_c_004
+    domain: clinical
+    section: bph_operative_time
+    approved_claim: true
+    source: "BSC Moses BPH page — peer-reviewed study"
+    keywords: [HoLEP, enucleation, operative time, 25 minutes, 101 vs 126 minutes, BPH, same-day discharge]
+    content: |
+      MOSES 2.0 Technology reduces total operative time by 25 minutes compared to
+      standard holmium laser enucleation of the prostate (HoLEP): 101 minutes vs
+      126 minutes (p=0.03). Enucleation time is reduced from 80 to 68 minutes
+      (p=0.03). The clinical impact compounds when multiplied across a surgeon's annual
+      caseload. A 25-minute OR time reduction per BPH case represents substantial
+      throughput and cost savings for a urology service line performing 100+ HoLEP
+      cases per year.
+
+  - id: moses_c_005
+    domain: clinical
+    section: bph_learning_curve
+    approved_claim: true
+    source: "BSC Moses BPH page — prospective study"
+    keywords: [new to enucleation, 44 percent, procedural efficiency, learning curve, HoLEP, surgeon adoption, training]
+    content: |
+      Surgeons new to enucleation demonstrated 44% higher procedural efficiency using
+      MOSES 2.0 Technology compared to standard holmium laser enucleation of the
+      prostate (HoLEP). This learning curve advantage is commercially significant:
+      urology programs expanding their HoLEP offering can bring new surgeons to
+      proficiency faster with MOSES, reducing the volume of extended-time cases
+      during the ramp-up period. This is a key differentiator for programs building
+      a BPH center of excellence.
+
+  - id: moses_c_006
+    domain: clinical
+    section: bph_same_day_discharge
+    approved_claim: true
+    source: "BSC Moses BPH page — clinical data"
+    keywords: [same-day discharge, 90 percent, catheter removal, BPH, outpatient, ASC, HoLEP, operational]
+    content: |
+      MOSES 2.0 Technology demonstrates a 90% same-day discharge rate in BPH patients
+      and a 90% success rate for same-day catheter removal in select patients. Same-day
+      discharge is the decisive economic advantage of laser BPH treatment versus TURP:
+      it converts an inpatient admission into an outpatient procedure, eliminating
+      overnight bed costs, nursing staff hours, and reducing readmission risk. For ASC
+      directors and hospital finance teams, same-day discharge is the financial headline.
+
+  # ── COF ───────────────────────────────────────────────────────────────────
+
+  - id: moses_cof_001
+    domain: cof
+    section: stone_cof
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis / BSC Moses clinical data"
+    keywords: [COF, stone, OR efficiency, case volume, throughput, retropulsion, procedure time, anesthesia cost]
+    content: |
+      Moses 2.0 COF frame for stone programs:
+      Clinical: 50% retropulsion reduction preserves optimal stone targeting; 20%
+      procedure time reduction per case (Ibrahim RCT). Operational: More cases per OR
+      day with same staffing — a 20% time reduction on a 40-minute procedure means
+      8 minutes/case reclaimed. At 10 cases/day that is 80 minutes of recaptured OR
+      capacity. Financial: Reduced anesthesia time, faster turnover, and lower
+      per-case OR costs. Capital investment justified by throughput gain and avoided
+      overtime. Strategic probe: "What is your average lithotripsy procedure time, and
+      what would a 20% reduction mean for your daily case count?"
+
+  - id: moses_cof_002
+    domain: cof
+    section: bph_cof
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis / BSC Moses BPH data"
+    keywords: [BPH, HoLEP, ASC, outpatient, inpatient, same-day discharge, 90 percent, VAC, capital]
+    content: |
+      Moses 2.0 COF frame for BPH programs:
+      Clinical: 90% same-day discharge, 25-minute OR time reduction vs standard HoLEP,
+      44% faster adoption curve for new enucleators. Operational: Converting TURP
+      inpatient admissions to ASC/outpatient HoLEP cases reduces bed utilization for
+      higher-revenue service lines. Financial: Each inpatient avoided saves $1,500+
+      in overnight bed/nursing costs. VAC framing: MOSES is not a laser upgrade — it
+      is a throughput and same-day discharge platform that changes the economics of
+      BPH care at your facility. Strategic probe: "What percentage of your BPH cases
+      are currently done on an outpatient basis, and what is your target?"
+
+  # ── OBJECTION ────────────────────────────────────────────────────────────
+
+  - id: moses_obj_001
+    domain: objection
+    section: capital_cost_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [capital, cost, budget, ROI, payback, per-case, throughput, OR time, lease, amortize]
+    content: |
+      When capital cost is the objection: redirect from sticker price to per-case
+      economics. MOSES 2.0 is not priced per procedure — it is a platform amortized
+      across hundreds of cases per year. The 20% procedure time reduction on lithotripsy
+      means more revenue-generating cases per day with the same OR and staff. Model the
+      ROI: if the system costs $X and enables Y additional cases per year at $Z average
+      reimbursement, payback period becomes concrete. Add BPH value: every TURP-to-HoLEP
+      conversion reduces inpatient admissions, reducing cost while maintaining or
+      improving revenue capture. Capital objections dissolve when reframed as a
+      throughput investment.
+
+  - id: moses_obj_002
+    domain: objection
+    section: competitor_thulium_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [thulium, TFL, fiber laser, versus, holmium, dusting, fragmentation, pulse, Moses, comparison]
+    content: |
+      When a prospect compares Moses/holmium to thulium fiber laser: acknowledge TFL's
+      dusting efficiency advantage for small stones. Then reframe to versatility:
+      MOSES 2.0 handles the full stone and BPH spectrum on one platform. TFL systems
+      require separate capital for BPH laser procedures, or a separate device purchase.
+      MOSES 2.0's 92% stone ablation improvement at 120Hz closes the dusting gap, and
+      its HoLEP data (44% new-surgeon efficiency, 90% same-day discharge) has no TFL
+      equivalent in published RCT evidence. For a program seeking one capital platform
+      for stone AND BPH, MOSES 2.0 is the answer.

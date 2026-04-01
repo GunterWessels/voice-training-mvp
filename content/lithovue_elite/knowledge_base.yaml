@@ -1,0 +1,160 @@
+# LithoVue Elite Single-Use Digital Flexible Ureteroscope — RAG Knowledge Base
+# Product: Boston Scientific LithoVue™ Elite Single-Use Digital Flexible Ureteroscope System
+# Source: bostonscientific.com/en-US/medical-specialties/urology/products/lithovue-elite.html
+# FDA 510(k) cleared: February 3, 2023
+# Last updated: 2026-04-01
+
+product_id: lithovue_elite
+scenario_ids:
+  - bbe7c082-687f-4b62-9b3e-69e1bd87537c
+
+chunks:
+
+  - id: lve_p_001
+    domain: product
+    section: overview
+    approved_claim: true
+    source: "BSC LithoVue Elite Product Page — FDA 510(k) cleared Feb 3, 2023"
+    keywords: [LithoVue Elite, single-use, IRP, intrarenal pressure, digital, flexible, ureteroscope, first, 510k]
+    content: |
+      LithoVue™ Elite is the world's first ureteroscope with built-in intrarenal
+      pressure (IRP) monitoring. FDA 510(k) cleared February 3, 2023. As a single-use
+      digital flexible ureteroscope, it eliminates reprocessing while adding real-time
+      pressure intelligence that has never before been available at the point of care
+      in ureteroscopy. The system is designed for urologists performing ureteroscopy
+      and kidney stone procedures who want the combined benefits of sterile single-use
+      access and intraoperative IRP visibility.
+
+  - id: lve_p_002
+    domain: product
+    section: image_quality
+    approved_claim: true
+    source: "BSC LithoVue Elite Product Page"
+    keywords: [VividVue, image quality, high-resolution, digital chip, 270 degrees, deflection, wide view, bold colors]
+    content: |
+      LithoVue Elite features a high-resolution digital chip with Boston Scientific's
+      proprietary VividVue™ Technology image processing, delivering bright, sharp, and
+      clear images with accurate, bold colors and fast image processing. The scope
+      provides 270° deflection in both directions and a wide field of view. These
+      visualization capabilities match or exceed reusable scope image quality while
+      adding the single-use sterility advantage.
+
+  - id: lve_p_003
+    domain: product
+    section: or_integration
+    approved_claim: true
+    source: "BSC LithoVue Elite Product Page"
+    keywords: [StoneSmart Connect, console, capital footprint, OR monitors, existing tower, buttons, image capture, staff]
+    content: |
+      The LithoVue Elite System connects to the StoneSmart™ Connect Console, designed
+      to reduce OR clutter and minimize capital footprint. The system integrates with
+      existing mobile visualization towers and uses existing OR monitors — minimizing
+      distraction and avoiding additional infrastructure investment. Programmable
+      buttons on the scope handle enable image and video capture without requiring
+      staff coordination, keeping the procedure team focused.
+
+  # ── CLINICAL — IRP ───────────────────────────────────────────────────────
+
+  - id: lve_c_001
+    domain: clinical
+    section: irp_clinical_rationale
+    approved_claim: true
+    source: "BSC LithoVue Elite Product Page — cited references 1-9"
+    keywords: [IRP, intrarenal pressure, SIRS, sepsis, renal damage, fluid absorption, fever, infection, complications, pyelovenous]
+    content: |
+      High intrarenal pressure (IRP) during ureteroscopy may contribute to a range
+      of post-operative complications, including: systemic inflammatory response
+      syndrome (SIRS), sepsis, renal damage, fluid absorption, fever, infection, and
+      pyelovenous backflow. Despite the known association between elevated IRP and
+      these complications, understanding IRP as a predictor of outcomes has
+      historically been neglected — primarily because no ureteroscope has previously
+      provided real-time IRP data during the procedure. LithoVue Elite changes this
+      by displaying accurate, real-time, second-by-second intrarenal pressure data
+      during the procedure.
+
+  - id: lve_c_002
+    domain: clinical
+    section: irp_clinical_decision
+    approved_claim: true
+    source: "BSC LithoVue Elite Product Page"
+    keywords: [real-time, second-by-second, informed decision, irrigation, pressure, awareness, collecting system, clinical]
+    content: |
+      LithoVue Elite provides immediate awareness of pressure within the collecting
+      system, enabling urologists to make informed, pressure-related clinical decisions
+      in real time during the procedure. The display delivers accurate, second-by-second
+      IRP data — not an estimated or post-hoc measurement. Clinicians can adjust
+      irrigation, pace of stone fragmentation, or procedural technique based on live
+      pressure readings, potentially reducing the risk of pressure-related complications
+      that arise from unmonitored IRP elevation.
+
+  - id: lve_c_003
+    domain: clinical
+    section: irp_research_opportunity
+    approved_claim: false
+    source: "LiquidSMARTS™ clinical synthesis / BSC LithoVue Elite page"
+    keywords: [IRP, research, outcomes, data, predictor, complication rate, SIRS, sepsis, urology, quality]
+    content: |
+      IRP monitoring with LithoVue Elite creates a clinical data infrastructure that
+      did not previously exist. For urology programs pursuing quality improvement and
+      outcomes research, the ability to correlate procedural IRP levels with post-op
+      outcomes (sepsis rate, febrile UTI, readmission) opens new quality improvement
+      pathways. Academic urology programs and high-volume stone centers can use this
+      data to refine their irrigation protocols, optimize procedure workflows, and
+      potentially publish outcomes that define best-practice IRP thresholds. This
+      positions programs using LithoVue Elite at the leading edge of ureteroscopy
+      quality science.
+
+  # ── COF ──────────────────────────────────────────────────────────────────
+
+  - id: lve_cof_001
+    domain: cof
+    section: irp_monitoring_cof
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis"
+    keywords: [sepsis, readmission, SIRS, complication, quality metric, IRP, pressure, COF, financial, CMS]
+    content: |
+      LithoVue Elite COF frame:
+      Clinical: First-ever real-time IRP monitoring during ureteroscopy; addresses
+      known risk factors for post-op SIRS, sepsis, and renal damage through
+      intraoperative visibility. Operational: Enables irrigation protocol
+      standardization, potential reduction in post-op febrile complications, and
+      OR efficiency from better intraoperative decision-making. Financial: Sepsis
+      readmissions are high-cost events — reducing post-ureteroscopy sepsis rate by
+      even a fraction impacts the facility's CMS quality scores and readmission
+      penalties under value-based care programs. Strategic probe: "What is your
+      current post-ureteroscopy febrile complication or sepsis readmission rate,
+      and do you currently have any visibility into procedural IRP?"
+
+  - id: lve_cof_002
+    domain: cof
+    section: reimbursement_cof
+    approved_claim: true
+    source: "BSC LithoVue Elite Product Page — HCPCS C1747"
+    keywords: [C1747, TPT, transitional pass-through, Medicare, reimbursement, additional, hospital outpatient, device payment]
+    content: |
+      LithoVue Elite qualifies for HCPCS C1747 Transitional Pass-Through (TPT)
+      payment for Medicare hospital outpatient and ASC procedures — the same device
+      code as LithoVue. This additional, separate Medicare reimbursement for the
+      device, on top of the procedure payment, reduces the net per-use cost. The
+      IRP monitoring capability of LithoVue Elite is included within C1747 — no
+      additional billing code is required for the pressure monitoring feature.
+
+  # ── OBJECTION ────────────────────────────────────────────────────────────
+
+  - id: lve_obj_001
+    domain: objection
+    section: irp_value_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [IRP, clinical value, proof, outcomes, data, evidence, RCT, monitor, pressure, complication]
+    content: |
+      When a prospect questions the clinical value of IRP monitoring: acknowledge
+      that RCT outcome data specific to IRP-guided ureteroscopy is emerging, not
+      complete. The honest clinical argument is that IRP as a complication risk
+      factor is well-established in literature — the gap has been the absence of
+      intraoperative IRP data. LithoVue Elite closes that gap for the first time.
+      Programs using it are positioned to generate the outcome data that will define
+      future practice standards. Early adopters contribute to the evidence base
+      rather than waiting for it. The ask: "If you could see real-time IRP during
+      your next ureteroscopy case and adjust irrigation accordingly, would you do
+      anything differently?"

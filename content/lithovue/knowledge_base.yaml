@@ -1,0 +1,110 @@
+# LithoVue Single-Use Digital Flexible Ureteroscope — RAG Knowledge Base
+# Product: Boston Scientific LithoVue™ Single-Use Digital Flexible Ureteroscope
+# Source: bostonscientific.com — LithoVue product, evidence, and cost pages
+# Last updated: 2026-04-01
+
+product_id: lithovue
+scenario_ids:
+  - bbe7c082-687f-4b62-9b3e-69e1bd87537c
+
+chunks:
+
+  - id: lv_p_001
+    domain: product
+    section: overview
+    approved_claim: true
+    source: "BSC LithoVue Product Page"
+    keywords: [LithoVue, single-use, disposable, ureteroscope, digital, flexible, stone, ureteroscopy]
+    content: |
+      LithoVue™ is Boston Scientific's single-use digital flexible ureteroscope
+      designed for ureteroscopic procedures including stone management. As a
+      single-use device, LithoVue eliminates the reprocessing cycle required by
+      reusable flexible ureteroscopes — including cleaning, sterilization, and
+      ongoing repair and maintenance. Each scope arrives sterile and ready for use,
+      then is discarded after the procedure.
+
+  - id: lv_p_002
+    domain: product
+    section: reimbursement
+    approved_claim: true
+    source: "BSC LithoVue Cost and Reimbursement Page — HCPCS C1747"
+    keywords: [C1747, HCPCS, pass-through, TPT, Medicare, reimbursement, additional payment, hospital outpatient, ASC]
+    content: |
+      LithoVue carries the HCPCS device code C1747: "Endoscope, single-use (i.e.,
+      disposable), urinary tract, imaging/illumination device (insertable)." Under
+      the Medicare Transitional Pass-Through (TPT) payment program, hospitals may
+      obtain additional, separate Medicare reimbursement for devices with TPT status,
+      in addition to reimbursement for the ureteroscopy procedure itself. This
+      device-specific payment is intended to cover the cost of the single-use device.
+      Payments vary by facility based on hospital-reported charges. Medicare patients
+      treated in the hospital outpatient setting do not incur additional cost for
+      LithoVue utilization. Important: reimbursement information is subject to change;
+      providers should verify current coding and coverage with their billing team.
+
+  - id: lv_c_001
+    domain: clinical
+    section: infection_control
+    approved_claim: false
+    source: "LiquidSMARTS™ clinical synthesis / published flexible ureteroscope literature"
+    keywords: [infection, reprocessing failure, reusable, scope damage, biofilm, cross-contamination, single-use, sterile]
+    content: |
+      Reusable flexible ureteroscopes are subject to failure at multiple reprocessing
+      checkpoints: damage during cleaning, inadequate high-level disinfection, and
+      residual biofilm in channels that survive standard reprocessing cycles.
+      Published literature documents scope-to-patient transmission of resistant
+      organisms (including ESBL-producing Enterobacteriaceae) from inadequately
+      reprocessed flexible endoscopes. LithoVue arrives sterile, is used once, and
+      discarded — eliminating the reprocessing chain entirely. For infection control
+      officers and quality teams, single-use eliminates a category of hospital-acquired
+      infection risk rather than managing it.
+
+  - id: lv_c_002
+    domain: clinical
+    section: scope_readiness
+    approved_claim: false
+    source: "LiquidSMARTS™ clinical synthesis / ureteroscope repair literature"
+    keywords: [scope damage, repair rate, reusable, availability, readiness, cancel case, downtime, maintenance]
+    content: |
+      Reusable flexible ureteroscopes have a high damage rate in clinical practice.
+      Studies report per-procedure damage rates of 11-37% and annual repair costs
+      ranging from $10,000 to $40,000+ per scope depending on repair frequency and
+      service contracts. A damaged scope is an unavailable scope — case delays and
+      cancellations follow. With LithoVue, every scope is new, undamaged, and
+      available at the start of each case. There is no scope readiness risk, no repair
+      budget, and no cancellation due to equipment failure.
+
+  - id: lv_cof_001
+    domain: cof
+    section: single_use_cof
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis / BSC LithoVue economic data"
+    keywords: [reprocessing cost, repair, maintenance, infection risk, downtime, throughput, C1747, TCO, total cost]
+    content: |
+      LithoVue COF frame:
+      Clinical: Sterile scope every case eliminates reprocessing-associated infection
+      risk; no scope damage means no case cancellations from equipment failure.
+      Operational: Eliminates reprocessing labor (cleaning, disinfection, inspection,
+      drying, storage); eliminates repair coordination and scope rotation management;
+      every case starts on time with a ready scope. Financial: C1747 TPT code offsets
+      per-unit device cost for Medicare outpatient cases; elimination of scope repair
+      budget and reprocessing staff time reduces total cost of ownership vs reusable
+      fleet. Strategic probe: "What is your current annual spend on flexible
+      ureteroscope repair and reprocessing, and how often does a damaged scope
+      delay or cancel a case?"
+
+  - id: lv_obj_001
+    domain: objection
+    section: cost_per_use_objection
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework"
+    keywords: [cost per use, expensive, reusable, repair, total cost, amortize, fleet, hidden cost]
+    content: |
+      When the per-unit cost objection surfaces: redirect to total cost of ownership.
+      Reusable scope economics include: purchase price amortized over scope life,
+      annual repair costs ($10K-$40K/scope), reprocessing labor (technician time per
+      cycle), disinfection supplies, and the cost of case cancellations from scope
+      unavailability. LithoVue's per-use cost must be evaluated against this full
+      picture — not against the reusable scope's sticker price. The C1747 TPT payment
+      further reduces the net cost for Medicare outpatient cases. The strategic ask:
+      "Have you done a full cost-per-procedure analysis that includes repair,
+      reprocessing labor, and case cancellation costs?"
