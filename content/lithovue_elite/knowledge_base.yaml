@@ -141,6 +141,126 @@ chunks:
 
   # ── OBJECTION ────────────────────────────────────────────────────────────
 
+  # ── HCRU STUDY — Bhojani et al. CUAJ 2026 ───────────────────────────────
+
+  - id: lve_hcru_001
+    domain: clinical
+    section: hcru_study_overview
+    approved_claim: false
+    source: "Bhojani N, et al. CUAJ 2026. DOI: 10.5489/cuaj.9608. Funded by Boston Scientific."
+    keywords: [HCRU, healthcare resource utilization, CUAJ, "2026", Bhojani, real-world, PINC AI, Premier, propensity score, ureteroscopy]
+    content: |
+      The Bhojani et al. CUAJ 2026 study (published March 30, 2026) is the first
+      real-world observational study quantifying healthcare resource utilization (HRU)
+      after ureteroscopy comparing LithoVue™ Elite (LVE) with IRP monitoring versus
+      other non-pressure-sensing single-use ureteroscopes. Data source: Premier PINC
+      AI™ Healthcare Database — a nationally representative US all-payer database
+      covering 25% of all US hospital admissions, 1,370+ facilities, 341M+ unique
+      patients. Population: adults ≥18 undergoing URS with lithotripsy, Jan 1, 2024
+      through March 1, 2025. Design: retrospective observational, 1:3 propensity score
+      matched, multivariable logistic regression adjusted for age, sex, race, CCI,
+      payer, diabetes, obesity, prior sepsis. Sample: 292 LVE patients matched to
+      876 controls. Funded by Boston Scientific, Inc. Key limitation: observational
+      design; cannot confirm how surgeons used IRP data intraoperatively.
+
+  - id: lve_hcru_002
+    domain: clinical
+    section: hcru_primary_outcomes
+    approved_claim: false
+    source: "Bhojani N, et al. CUAJ 2026. DOI: 10.5489/cuaj.9608"
+    keywords: [composite HRU, ED visit, inpatient admission, 10 day, 30 day, 4.5 percent, 8.7 percent, 7.2 percent, 12 percent, ARR, NNT, p=0.016, p=0.019]
+    content: |
+      Primary outcome: composite HRU (ED visit OR inpatient admission) at 10 and
+      30 days post-URS. Results from matched cohort:
+      10-day HRU: 4.5% (LVE) vs. 8.7% (other single-use) — absolute risk reduction
+      (ARR) 4.2 percentage points, NNT ≈24, p=0.016.
+      30-day HRU: 7.2% vs. 12.0% — ARR 4.8 pp, NNT ≈21, p=0.019.
+      Adjusted multivariable OR:
+      10-day: OR 0.355 (95% CI 0.175-0.718), p=0.004.
+      30-day: OR 0.473 (95% CI 0.281-0.797), p=0.005.
+      Interpretation: patients treated with LVE had roughly half the odds of a
+      post-procedural ED visit or hospital admission at both time points compared
+      to those treated with other single-use ureteroscopes.
+
+  - id: lve_hcru_003
+    domain: clinical
+    section: hcru_component_outcomes
+    approved_claim: false
+    source: "Bhojani N, et al. CUAJ 2026. DOI: 10.5489/cuaj.9608"
+    keywords: [ED visits, inpatient admissions, 10-day, 30-day, OR 0.385, OR 0.436, p=0.049, p=0.041, component outcomes]
+    content: |
+      Component outcome results — all directionally consistent with primary composite:
+      ED visits 10-day: 2.1% (LVE) vs. 4.9% — OR 0.385 (95% CI 0.149-0.997), p=0.049.
+      ED visits 30-day: 3.8% vs. 6.2% (directionally consistent).
+      Inpatient admissions 10-day: 2.7% vs. 3.8%.
+      Inpatient admissions 30-day: 4.1% vs. 6.2% — OR 0.436 (95% CI 0.196-0.967), p=0.041.
+      Sensitivity analysis confirms robustness: 7-day OR 0.435 (p=0.033), 14-day
+      OR 0.387 (p=0.004). Results held across comorbidity subgroups (CCI ≤4: OR 0.457,
+      p=0.023) and were consistent among patients with UTI, sepsis, or UTI/sepsis
+      composite encounters.
+
+  - id: lve_hcru_004
+    domain: cof
+    section: hcru_financial_translation
+    approved_claim: false
+    source: "LiquidSMARTS™ COF synthesis / Bhojani CUAJ 2026"
+    keywords: [NNT, "21", "24", avoidable, ED visits, hospital admissions, financial, CMS, quality, value-based care, payer, ROI, VAC]
+    content: |
+      HCRU study financial translation for hospital administrators and VAC:
+      NNT of 21-24 means: in a program performing 500 URS cases per year, switching
+      from standard single-use to LVE avoids approximately 20-24 ED visits or
+      inpatient admissions annually. Each avoided ED visit eliminates: ED staff time,
+      observation bed cost, potential readmission flag under CMS quality programs,
+      and HCAHPS impact from a patient who experienced a post-procedural complication.
+      Each avoided inpatient admission eliminates: bed-night cost, nursing hours,
+      and potential 30-day readmission exposure under value-based care programs.
+      For payers and finance teams: this study was published in a peer-reviewed
+      journal, uses a nationally representative claims database, and adjusts for
+      comorbidities — it is not vendor marketing. The data shows LVE is associated
+      with clinically meaningful, measurable reductions in avoidable post-URS care.
+      Strategic probe: "If 12% of your ureteroscopy patients are returning to the ED
+      or getting admitted within 30 days, and a scope with pressure monitoring could
+      cut that to 7%, what does that mean for your quality metrics and your budget?"
+
+  - id: lve_hcru_005
+    domain: cof
+    section: hcru_infection_prior_study
+    approved_claim: false
+    source: "Prior infection study referenced in Bhojani CUAJ 2026 (ref 22)"
+    keywords: [infection, UTI, 30-day, 8.2 percent, 15.4 percent, OR 2.09, p=0.016, post-operative, sepsis, prior study]
+    content: |
+      A prior study (referenced as #22 in Bhojani CUAJ 2026) comparing LVE with
+      pressure monitoring to other single-use ureteroscopes found post-operative
+      infection significantly lower with LVE: 8.2% vs. 15.4% at 30 days (p=0.016).
+      Multivariable analysis: OR 2.09 (95% CI 1.19-3.86) higher odds of infection
+      with other scopes (p=0.014). 30-day UTI: 5.2% vs. 10.8% (p=0.033). The CUAJ
+      2026 HCRU study builds on this infection data by demonstrating that the
+      reduction in infections translates to measurable healthcare resource
+      utilization differences — the clinical finding becomes an operational and
+      financial outcome. Two separate real-world studies now point in the same
+      direction: LVE with IRP monitoring is associated with lower post-procedural
+      complication burden.
+
+  - id: lve_hcru_006
+    domain: objection
+    section: hcru_study_integrity
+    approved_claim: false
+    source: "LiquidSMARTS™ objection framework / Bhojani CUAJ 2026 limitations section"
+    keywords: [retrospective, observational, bias, confounding, propensity score, limitations, early adopter, surgeon experience, respond to]
+    content: |
+      When a clinician or administrator challenges the HCRU study design:
+      Acknowledge limitations proactively — this is what builds credibility.
+      "You're right that this is observational, not a randomized trial. The authors
+      acknowledge that LVE cases may reflect early adopters or higher-volume surgeons.
+      Propensity score matching adjusts for measurable factors, but unmeasured
+      confounders — like surgical technique — can't be fully controlled."
+      Then pivot: "Despite those limitations, the effect held across multiple time
+      points (7, 10, 14, 30 days), across comorbidity subgroups, and was consistent
+      for both ED visits and inpatient admissions independently. That directional
+      consistency across subgroups is what makes the finding credible as a signal,
+      even before a prospective trial is available. And it's published in a
+      peer-reviewed journal — not a company white paper."
+
   - id: lve_obj_001
     domain: objection
     section: irp_value_objection
