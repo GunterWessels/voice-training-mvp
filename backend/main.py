@@ -668,16 +668,21 @@ async def create_api_session(
         # Validate persona_id — fall back to scenario default if not in PERSONAS
         persona_id = body.persona_id if body.persona_id in PERSONAS else scenario_persona
 
-        # Upsert user row so sessions.user_id FK is satisfied
-        await client.post(
+        # Resolve user_uuid: look up by email so FK uses the DB-authoritative id
+        email = user.get("email") or f"{user_uuid}@unknown.internal"
+        lu = await client.get(
             f"{_supa_url}/rest/v1/users",
-            headers={**_hdrs, "Prefer": "resolution=ignore-duplicates,return=minimal"},
-            json={
-                "id": user_uuid,
-                "email": user.get("email") or f"{user_uuid}@unknown.internal",
-                "role": user.get("role", "rep"),
-            },
+            params={"email": f"eq.{email}", "select": "id"},
+            headers=_hdrs,
         )
+        if lu.status_code == 200 and lu.json():
+            user_uuid = lu.json()[0]["id"]
+        else:
+            await client.post(
+                f"{_supa_url}/rest/v1/users",
+                headers={**_hdrs, "Prefer": "return=minimal"},
+                json={"id": user_uuid, "email": email, "role": user.get("role", "rep")},
+            )
 
         session_id = str(uuid_mod.uuid4())
         sr = await client.post(
@@ -829,7 +834,7 @@ async def start_series_session(series_id: str, user: dict = Depends(get_current_
         await pg.execute(
             pg_insert(UserModel)
             .values(id=user_uuid, email=user.get("email") or f"{user_uuid}@unknown.internal", role=user.get("role", "rep"))
-            .on_conflict_do_nothing(index_elements=["id"])
+            .on_conflict_do_nothing()
         )
 
         session_id = uuid_mod.uuid4()
