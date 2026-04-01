@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import CCEHeader from '@/components/CCEHeader'
+import SessionModeSelector, { type SessionMode } from '@/components/SessionModeSelector'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
@@ -33,6 +34,7 @@ interface SeriesDetail {
   category: string
   scenario_id: string
   scenario_name: string
+  persona_id?: string
   cof_map: CofMap
   grading_criteria: { dimensions: GradingDimension[] }
 }
@@ -65,6 +67,9 @@ export default function SeriesDetailPage() {
   const [detail, setDetail] = useState<SeriesDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<SessionMode>('practice')
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -84,6 +89,36 @@ export default function SeriesDetailPage() {
       }
     })
   }, [router, seriesId])
+
+  async function beginSession() {
+    if (!detail) return
+    setStarting(true)
+    setStartError(null)
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/auth/login'); return }
+    try {
+      const res = await fetch(`${API}/api/series/${seriesId}/sessions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mode, persona_id: detail.persona_id ?? null }),
+      })
+      if (!res.ok) {
+        const body = await res.text().catch(() => res.status.toString())
+        throw new Error(`${res.status}: ${body}`)
+      }
+      const { session_id, persona_id: resolvedPersona } = await res.json()
+      router.replace(
+        `/session/${session_id}?persona=${resolvedPersona}&mode=${mode}&series=${seriesId}`
+      )
+    } catch (err: unknown) {
+      setStartError(err instanceof Error ? err.message : 'Could not start session')
+      setStarting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -202,21 +237,35 @@ export default function SeriesDetailPage() {
           </Section>
         )}
 
-        {/* Begin CTA */}
-        <div className="pt-2">
+        {/* Mode selector + Begin */}
+        <div className="space-y-4 pt-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-[#5f6368] font-semibold mb-3">
+              Session Mode
+            </p>
+            <SessionModeSelector value={mode} onChange={setMode} />
+          </div>
+          {startError && (
+            <p className="text-[11px] text-red-400 font-mono">{startError}</p>
+          )}
           <button
-            onClick={() => router.push(`/session/new?series=${seriesId}`)}
-            className="w-full py-4 rounded-xl font-semibold text-[#0a1a1a] text-[15px] transition-all"
+            onClick={beginSession}
+            disabled={starting}
+            className="w-full py-4 rounded-xl font-semibold text-[#0a1a1a] text-[15px] transition-all disabled:opacity-50"
             style={{
-              background: 'linear-gradient(135deg, #2ddbde 0%, #1bb8bc 100%)',
+              background: mode === 'certification'
+                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                : 'linear-gradient(135deg, #2ddbde 0%, #1bb8bc 100%)',
               fontFamily: 'var(--font-space-grotesk)',
             }}
           >
-            Begin Practice
+            {starting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 rounded-full border-2 border-[#0a1a1a]/30 border-t-[#0a1a1a] animate-spin" />
+                Starting...
+              </span>
+            ) : mode === 'certification' ? 'Begin Certification' : 'Begin Practice'}
           </button>
-          <p className="text-center text-[11px] text-[#5f6368] mt-2">
-            Choose your persona and mode on the next screen
-          </p>
         </div>
 
       </main>
