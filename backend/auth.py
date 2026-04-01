@@ -84,13 +84,12 @@ async def get_current_user(
     token = credentials.credentials
 
     try:
-        if SUPABASE_JWT_SECRET:
-            # Local verification: fast, no network dependency, cryptographically secure.
-            # Supabase signs all JWTs with this HS256 secret — local check is equivalent
-            # to the remote /auth/v1/user call for authenticity purposes.
+        testing = os.environ.get("TESTING") == "1"
+        if testing and SUPABASE_JWT_SECRET:
+            # Local verification only in test environments — avoids network calls in CI
             data = _verify_token_local(token)
         else:
-            # Fallback: remote verification when secret is unavailable (shouldn't happen in prod)
+            # Remote verification: delegates to Supabase Auth API, algorithm-agnostic
             data = await _verify_token_remote(token)
     except HTTPException:
         raise
