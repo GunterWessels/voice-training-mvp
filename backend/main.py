@@ -1083,14 +1083,24 @@ async def auth_check(user: dict = Depends(get_current_user)):
         if not db_user:
             if email in admin_emails:
                 # Auto-create admin user on first authenticated hit
-                db_user = UserModel(
-                    id=str(uuid_mod.uuid4()),
-                    email=email,
-                    role="admin",
-                )
-                session.add(db_user)
-                await session.commit()
-                await session.refresh(db_user)
+                from sqlalchemy.exc import IntegrityError
+                try:
+                    db_user = UserModel(
+                        id=str(uuid_mod.uuid4()),
+                        email=email,
+                        role="admin",
+                    )
+                    session.add(db_user)
+                    await session.commit()
+                    await session.refresh(db_user)
+                except IntegrityError:
+                    # Email already exists (created via PostgREST) — fetch and promote
+                    await session.rollback()
+                    result2 = await session.execute(sa_select(UserModel).where(UserModel.email == email))
+                    db_user = result2.scalar_one_or_none()
+                    if db_user and db_user.role != "admin":
+                        db_user.role = "admin"
+                        await session.commit()
             else:
                 raise HTTPException(status_code=403, detail="Not on allowlist")
         elif email in admin_emails and db_user.role != "admin":
