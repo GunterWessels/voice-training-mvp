@@ -785,11 +785,12 @@ async def get_series(user: dict = Depends(get_current_user)):
     async with AsyncSessionLocal() as pg:
         result = await pg.execute(sa_text("""
             SELECT ps.id::text, ps.name, ps.category, ps.description,
+                   COALESCE(ps.pinned, false) AS pinned,
                    COUNT(psi.id) AS stage_count
             FROM practice_series ps
             LEFT JOIN practice_series_items psi ON psi.series_id = ps.id
-            GROUP BY ps.id, ps.name, ps.category, ps.description
-            ORDER BY ps.created_at
+            GROUP BY ps.id, ps.name, ps.category, ps.description, ps.pinned
+            ORDER BY ps.pinned DESC, ps.created_at
         """))
         rows = result.fetchall()
     series = [
