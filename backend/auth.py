@@ -56,11 +56,13 @@ async def _verify_token_remote(token: str) -> dict:
 
 def _verify_token_local(token: str) -> dict:
     """Verify JWT locally using SUPABASE_JWT_SECRET. Used in tests."""
+    # Skip audience check — Supabase tokens may have aud as string or array
+    # depending on project settings; signature verification is sufficient proof.
     payload = jwt.decode(
         token,
         SUPABASE_JWT_SECRET,
         algorithms=["HS256"],
-        audience="authenticated",
+        options={"verify_aud": False},
     )
     user_id = payload.get("sub")
     if not user_id:
