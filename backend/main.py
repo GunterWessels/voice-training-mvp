@@ -808,6 +808,42 @@ async def get_series(user: dict = Depends(get_current_user)):
     return {"series": series}
 
 
+@app.get("/api/series/{series_id}")
+async def get_series_detail(series_id: str, user: dict = Depends(get_current_user)):
+    """Return full briefing content for a practice series — scenario cof_map, key numbers, objection guide."""
+    from db import AsyncSessionLocal
+    from sqlalchemy import text as sa_text
+    async with AsyncSessionLocal() as pg:
+        result = await pg.execute(sa_text("""
+            SELECT
+                ps.id::text, ps.name, ps.category, ps.description,
+                COALESCE(ps.pinned, false) AS pinned,
+                s.id::text AS scenario_id, s.name AS scenario_name,
+                s.cof_map, s.methodology, s.grading_criteria
+            FROM practice_series ps
+            JOIN practice_series_items psi ON psi.series_id = ps.id
+            JOIN scenarios s ON s.id = psi.scenario_id
+            WHERE ps.id = CAST(:sid AS uuid)
+            ORDER BY psi.position
+            LIMIT 1
+        """), {"sid": series_id})
+        row = result.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Series not found")
+    return {
+        "id": row.id,
+        "name": row.name,
+        "category": row.category,
+        "description": row.description,
+        "pinned": row.pinned,
+        "scenario_id": row.scenario_id,
+        "scenario_name": row.scenario_name,
+        "cof_map": row.cof_map,
+        "methodology": row.methodology,
+        "grading_criteria": row.grading_criteria,
+    }
+
+
 class StartSessionRequest(BaseModel):
     mode: str = "practice"  # "practice" | "demo"
     session_mode: str = "practice"  # "practice" | "certification"

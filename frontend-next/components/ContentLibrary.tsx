@@ -185,10 +185,10 @@ export default function ContentLibrary() {
                     )}
                   </div>
                   <a
-                    href={`/session/new?series=${item.id}`}
+                    href={`/series/${item.id}`}
                     className="btn-primary-gradient flex-shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-lg"
                   >
-                    Practice
+                    Study
                   </a>
                 </div>
               ))}

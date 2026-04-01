@@ -172,10 +172,10 @@ export default function DashboardPage() {
               </span>
             ) : (
               <a
-                href={`/session/new?series=${assignment.id}`}
+                href={`/series/${assignment.id}`}
                 className="btn-primary-gradient inline-block rounded-lg px-6 py-2.5 text-sm font-semibold"
               >
-                Begin Session
+                Open Assignment
               </a>
             )}
           </div>
